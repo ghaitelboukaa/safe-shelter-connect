@@ -61,7 +61,16 @@ class Distribuer(db.Model):
     __tablename__ = 'distribuer'
     id_distribution = db.Column(db.Integer, primary_key=True)
     id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
+    id_sinistre = db.Column(db.Integer, db.ForeignKey('sinistre.id_sinistre'))
     id_ressource = db.Column(db.Integer, db.ForeignKey('ressource.id_ressource'))
     quantite_donnee = db.Column(db.Float)
+    unite_mesure = db.Column(db.String(50))
     date_distribution = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Equipe(db.Model):
+    __tablename__ = 'equipe'
+    id_equipe = db.Column(db.Integer, primary_key=True)
+    role = db.Column(db.String(100))
+    contact = db.Column(db.String(20))
+    #id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
     

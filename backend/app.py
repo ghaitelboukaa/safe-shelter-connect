@@ -4,7 +4,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from models import PointAffectation, db, User, Sinistre,ZoneRegroupement,Ressource,Stocker
+from models import Distribuer, Equipe, PointAffectation, db, User, Sinistre,ZoneRegroupement,Ressource,Stocker
 from functools import wraps
 
 # Chargement des variables d'environnement
@@ -57,12 +57,12 @@ def register():
     
     # 1. Validation sghira
     if not data.get('email') or not data.get('password'):
-        return jsonify({"message": "Email o Password daroriyn!"}), 400
+        return jsonify({"message": "Email and Password are required!"}), 400
 
     # 2. Check wax l-User deja kayn
     user_exists = User.query.filter_by(email=data['email']).first()
     if user_exists:
-        return jsonify({"message": "Had l-email deja m-stajjal!"}), 400
+        return jsonify({"message": "This email is already registered!"}), 400
 
     try:
         # 3. Hash dyal Password (Security)
@@ -90,11 +90,11 @@ def register():
             db.session.commit()
         
 
-        return jsonify({"message": "Compte  t-creea mzyan! Daba tqder t-login."}), 201
+        return jsonify({"message": "Account created successfully! You can now login."}), 201
 
     except Exception as e:
         db.session.rollback()
-        return jsonify({"message": "Erreur f l-Register", "error": str(e)}), 500
+        return jsonify({"message": "Register error", "error": str(e)}), 500
     
 
 
@@ -122,7 +122,7 @@ def login():
     
     else:
         # Ila kan error f email aw password
-        return jsonify({"message": "Email awla Password ghalat!"}), 401
+        return jsonify({"message": "Email or Password is incorrect!"}), 401
     
 
 
@@ -167,7 +167,6 @@ def get_single_zone(id):
 
 # 3. Create Zone (Admin Only)
 @app.route('/api/v1/zones', methods=['POST'])
-@jwt_required()
 @admin_required # Hna fin katisti l-role!
 def create_zone():
     # ... logic check role admin ...
@@ -184,7 +183,6 @@ def create_zone():
 
 # 4. Update Zone (Admin Only)
 @app.route('/api/v1/zones/<int:id>', methods=['PUT'])
-@jwt_required()
 @admin_required # Hna fin katisti l-role!
 def update_zone(id):
     zone = ZoneRegroupement.query.get_or_404(id)
@@ -199,7 +197,6 @@ def update_zone(id):
     return jsonify({"message": "Updated"}), 200
 
 @app.route('/api/v1/zones/<int:id>', methods=['DELETE'])
-@jwt_required()
 @admin_required # Hna fin katisti l-role!
 def delete_zone(id):
     zone = ZoneRegroupement.query.get_or_404(id)
@@ -222,19 +219,19 @@ def create_reservation():
     if not sinistre:
         return jsonify({
             "error": "profile_not_found", 
-            "message": "Ma-lqinach l-profile dyalk. Khassk ddir Register kamil."
+            "message": "Your profile was not found. You must complete the registration first."
         }), 404
     if sinistre.statut_reservation in ['Pending', 'Confirmed']:
         return jsonify({
             "error": "double_booking", 
-            "message": "Deja 3ndk reservation awla talab en cours!", 
+            "message": "You already have a reservation or a pending request!", 
             "status": 409
         }),409
 
     # 2. Check wax l-zone kayna
     point = PointAffectation.query.filter_by(id_zone=zone_id, statut='Libre').first()
     if not point:
-        return jsonify({"error": "not_found", "message": "Makaynch blassa khawya f had l-zone", "status": 404}), 404
+        return jsonify({"error": "not_found", "message": "No available place in this zone", "status": 404}), 404
 
     # 3. Blocki l-blassa (bash may-dihach chi wahed akhor f nfs l-weqt)
     point.statut = 'Occup'
@@ -263,7 +260,7 @@ def get_my_reservation():
     sinistre = Sinistre.query.filter_by(user_id=user_id).first()
     # 2. Ila makanch 3ndou profile awla baqi ma-reserver walo
     if not sinistre or sinistre.id_point is None:
-        return jsonify({"reservation": None, "message": "Ma3ndk hta reservation daba."}), 200
+        return jsonify({"reservation": None, "message": "You currently have no reservation."}), 200
     # 3. Njibou m3lomat dyal l-Point o l-Zone bach n-siftohom l-React
     point = PointAffectation.query.get(sinistre.id_point)
     zone = ZoneRegroupement.query.get(point.id_zone) if point else None
@@ -285,7 +282,7 @@ def cancel_my_reservation():
     sinistre = Sinistre.query.filter_by(user_id=user_id).first()
     # 1. Check wax aslan 3ndou reservation
     if not sinistre or sinistre.id_point is None:
-        return jsonify({"message": "Makayn hta reservation bach t-annuler."}), 404
+        return jsonify({"message": "No reservation found to cancel."}), 404
     # 2. Qallab 3la l-blassa (Point) li kan chad
     point = PointAffectation.query.get(sinistre.id_point)  
     if point:
@@ -304,7 +301,6 @@ def cancel_my_reservation():
 
 
 @app.route('/api/v1/admin/reservations', methods=['GET'])
-@jwt_required()
 @admin_required
 def list_all_reservations():
     # N-akhdo nmra dyal page mn l-URL (par defaut 1)
@@ -335,7 +331,6 @@ def list_all_reservations():
     }), 200
 
 @app.route('/api/v1/admin/reservations/<int:id>', methods=['PATCH'])
-@jwt_required()
 @admin_required
 def update_reservation_status(id):
     data = request.get_json()
@@ -344,7 +339,7 @@ def update_reservation_status(id):
     sinistre = Sinistre.query.get_or_404(id)
 
     if sinistre.statut_reservation != 'Pending':
-        return jsonify({"error": "bad_request", "message": "Had reservation machi f l-etat Pending"}), 400
+        return jsonify({"error": "bad_request", "message": "This reservation is not in the Pending state"}), 400
 
     # L-Admin Wafeq
     if action == 'Confirmed':
@@ -372,14 +367,160 @@ def update_reservation_status(id):
         sinistre.id_point = None
         sinistre.statut_reservation = 'Rejected'
         db.session.commit()
-        return jsonify({"message": "Reservation rejected, l-blassa rj3at khawya"}), 200
+        return jsonify({"message": "Reservation rejected, the place has been released"}), 200
     
-    return jsonify({"error": "bad_request", "message": "Action khassha t-koun 'Confirmed' awla 'Rejected'"}), 400
+    return jsonify({"error": "bad_request", "message": "Action must be 'Confirmed' or 'Rejected'"}), 400
 
 
+@app.route('/api/v1/admin/distributions', methods=['POST'])
+@admin_required
+def record_distribution():
+    data = request.get_json()
+    
+    # N-jibou les IDs li m-connectyin b l-association ternaire
+    id_zone = data.get('id_zone')
+    id_ressource = data.get('id_ressource')
+    id_sinistre = data.get('id_sinistre')
+    quantite_donnee = data.get('quantite_donnee')
+    unite = data.get('unite_mesure', 'kg') # Par défaut kg ila masiftouhach
+
+    # 1. Virifier wax kayn had l-stock f table 'Stocker'
+    stock = Stocker.query.filter_by(id_zone=id_zone, id_ressource=id_ressource).first()
+    
+    # 2. Error 422 (Insufficient Stock) kima 3ndk f l-lista 5.6
+    if not stock or stock.quantite_disponible < quantite_donnee:
+        return jsonify({
+            "error": "insufficient_stock",
+            "message": "Insufficient stock or the resource is not available in this zone!",
+            "status": 422
+        }), 422
+
+    # 3. Mantiq 1: N-nqso l-Stock
+    stock.quantite_disponible -= quantite_donnee
+
+    # 4. Mantiq 2: N-creerw traçabilité f table 'Distribuer'
+    nouvelle_distribution = Distribuer(
+        id_zone=id_zone,
+        id_ressource=id_ressource,
+        id_sinistre=id_sinistre,
+        quantite_donnee=quantite_donnee,
+        unite_mesure=unite
+    )
+    db.session.add(nouvelle_distribution)
+    
+    # 5. Valider kolchi f MySQL
+    db.session.commit()
+
+    return jsonify({
+        "message": "Distribution recorded",
+        "stock_remaining": stock.quantite_disponible
+    }), 200
+
+@app.route('/api/v1/resources', methods=['GET'])
+
+def list_resources():
+    ressources = Ressource.query.all()
+    res_list = []
+    for r in ressources:
+        res_list.append({
+            "id_ressource": r.id_ressource,
+            "type_ressource": r.type_ressource,
+            "unite_mesure": r.unite_mesure
+        })
+    return jsonify({"resources": res_list}), 200
+
+@app.route('/api/v1/zones/<int:id_zone>/stocks', methods=['GET'])
+@admin_required
+def get_zone_stocks(id_zone):
+    # 1. Njibou ga3 l-lignat dyal had l-zone mn table 'Stocker'
+    stocks = Stocker.query.filter_by(id_zone=id_zone).all()
+    
+    # 2. Ila makayn hta stock f had l-zone
+    if not stocks:
+        return jsonify({"message": "No stock available in this zone", "stocks": []}), 200
+
+    stock_list = []
+    
+    # 3. N-jm3ou l-m3lomat m3a table 'Ressource' bash n-jibou s-miya dyal l-makla/l-ma
+    for s in stocks:
+        ressource = Ressource.query.get(s.id_ressource)
+        if ressource:
+            stock_list.append({
+                "id_ressource": ressource.id_ressource,
+                "type_ressource": ressource.type_ressource,
+                "quantite_disponible": s.quantite_disponible,
+                "unite_mesure": ressource.unite_mesure
+            })
+
+    # 4. N-rj3ou l-JSON nqi l-React/Frontend
+    return jsonify({
+        "id_zone": id_zone,
+        "total_articles": len(stock_list),
+        "stocks": stock_list
+    }), 200
+
+# Partie 5.5: List response teams
+@app.route('/api/v1/admin/teams', methods=['GET'])
+@admin_required
+def list_teams():
+    # Kat-jbed mn table 'equipe'
+    equipes = Equipe.query.all()
+    teams_list = []
+    for e in equipes:
+        teams_list.append({
+            "id_equipe": e.id_equipe,
+            "role": e.role,
+            "contact": e.contact
+        })
+    return jsonify({"teams": teams_list}), 200
 
 
-
+# Partie 5.5: Summary stats for admin dashboard
+@app.route('/api/v1/admin/dashboard', methods=['GET'])
+@admin_required
+def get_dashboard_summary():
+    # 1. Total Zones
+    total_zones = ZoneRegroupement.query.count()
+    
+    # 2. I7sa2iyat dyal Reservations
+    total_reservations = Sinistre.query.filter(Sinistre.statut_reservation != 'None').count()
+    pending = Sinistre.query.filter_by(statut_reservation='Pending').count()
+    confirmed = Sinistre.query.filter_by(statut_reservation='Confirmed').count()
+    
+    # 3. I7sa2iyat dyal Kol Zone (Boucle)
+    zones_data = []
+    zones = ZoneRegroupement.query.all()
+    
+    for z in zones:
+        # Calcul dyal pourcentage: ((capacite_max - capacite_restante) / capacite_max) * 100
+        if z.capacite_max > 0:
+            places_occupees = z.capacite_max - z.capacite_restante
+            pct_full = round((places_occupees / z.capacite_max) * 100, 1)
+        else:
+            pct_full = 0
+            
+        # Check dyal Stock Critique: N-golo mital ila kan 9el mn 50 kg/Litre ra critical
+        critical_stock = False
+        stocks = Stocker.query.filter_by(id_zone=z.id_zone).all()
+        for s in stocks:
+            if s.quantite_disponible < 50:  # Seuil d'alerte (Tqder t-bdlo)
+                critical_stock = True
+                break
+                
+        zones_data.append({
+            "nom_zone": z.nom_zone,
+            "pct_full": pct_full,
+            "critical_stock": critical_stock
+        })
+        
+    # 4. Return l-JSON kima m-tloub f l-PRD
+    return jsonify({
+        "total_zones": total_zones,
+        "total_reservations": total_reservations,
+        "pending": pending,
+        "confirmed": confirmed,
+        "zones": zones_data
+    }), 200
 
 # 1. Refresh Token: Bach l-user may-t-disconnectach dima
 #@app.route('/api/v1/auth/refresh', methods=['POST'])
