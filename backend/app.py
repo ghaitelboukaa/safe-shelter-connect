@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, verify_jwt_in_request
+from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from models import Distribuer, Equipe, PointAffectation, db, User, Sinistre,ZoneRegroupement,Ressource,Stocker
@@ -238,11 +239,12 @@ def create_reservation():
     sinistre.id_point = point.id_point
     sinistre.statut_reservation = 'Pending' # L-Admin baqi ma-chafhach
 
-    # 4. Nqas l-capacite dyal l-Zone
-    zone = ZoneRegroupement.query.get(zone_id)
-    if zone:
-        zone.capacite_restante -= 1
+    # 4. N-sauvegardiw l-'Occupé' f MySQL qbel man-7esbou, bash l-Procedure tlqaha
+    db.session.flush() # Hadi darori bach n-jibou l-id_point li tbdl f MySQL o n-siftoha l-Procedure
 
+    # 4. Nqas l-capacite dyal l-Zone bsti3mal l-Procedure (CALL sp_refresh_capacity)
+    sql_call = text("CALL sp_refresh_capacity(:z)")
+    db.session.execute(sql_call, {'z': zone_id})
     db.session.commit()
 
     return jsonify({
@@ -341,15 +343,23 @@ def update_reservation_status(id):
     if sinistre.statut_reservation != 'Pending':
         return jsonify({"error": "bad_request", "message": "This reservation is not in the Pending state"}), 400
 
+    id_zone_for_Procedure = None
+    response_data = {}
+    
     # L-Admin Wafeq
     if action == 'Confirmed':
         sinistre.statut_reservation = 'Confirmed'
-        db.session.commit()
-        return jsonify({
+
+        # N-jibou l-id_zone bach n-siftoha l-Procedure mn ba3d
+        point = PointAffectation.query.get(sinistre.id_point)
+        if point:
+            id_zone_for_Procedure = point.id_zone if point else None
+        
+        response_data = {
             "message": "Status updated", 
             "id_point": sinistre.id_point,
             "statut": "Confirmed"
-        }), 200
+        }
 
     # L-Admin Rfed
     elif action == 'Rejected':
@@ -357,19 +367,27 @@ def update_reservation_status(id):
         if point:
             # L-blassa trje3 khawya
             point.statut = 'Libre'
+            id_zone_for_Procedure = point.id_zone # Hna n-jibou l-id_zone bach n-siftoha l-Procedure mn ba3d
             
-            # L-capacite dyal l-zone t-zad (+1)
-            zone = ZoneRegroupement.query.get(point.id_zone)
-            if zone:
-                zone.capacite_restante += 1
+            # L-capacite dyal l-zone t-zad (+1) wlakin rah daba drna Procedure ghadi itklf b lhsab
+            #zone = ZoneRegroupement.query.get(point.id_zone)
+            #if zone:
+            #    zone.capacite_restante += 1
         
         # N-m7iw l-lien m3a l-victime
         sinistre.id_point = None
         sinistre.statut_reservation = 'Rejected'
-        db.session.commit()
-        return jsonify({"message": "Reservation rejected, the place has been released"}), 200
+        response_data = {"message": "Reservation rejected, the place has been released"}
+    else:
+        return jsonify({"error": "bad_request", "message": "Action must be 'Confirmed' or 'Rejected'"}), 400
     
-    return jsonify({"error": "bad_request", "message": "Action must be 'Confirmed' or 'Rejected'"}), 400
+    #  4. HNA FIN KAN-ZIDOU L-APPEL DYAL PROCEDURE BASH N-REFRESHIW L-CAPACITE O LA LISTE DYAL POINTS F KOL ZONE
+    if id_zone_for_Procedure:
+        sql_call = text("CALL sp_refresh_capacity(:z)")
+        db.session.execute(sql_call, {'z': id_zone_for_Procedure})
+        
+    db.session.commit()
+    return jsonify(response_data),200
 
 
 @app.route('/api/v1/admin/distributions', methods=['POST'])
@@ -382,7 +400,7 @@ def record_distribution():
     id_ressource = data.get('id_ressource')
     id_sinistre = data.get('id_sinistre')
     quantite_donnee = data.get('quantite_donnee')
-    unite = data.get('unite_mesure', 'kg') # Par défaut kg ila masiftouhach
+    unite = data.get('unite_mesure', 'Unit') # Par défaut kg ila masiftouhach
 
     # 1. Virifier wax kayn had l-stock f table 'Stocker'
     stock = Stocker.query.filter_by(id_zone=id_zone, id_ressource=id_ressource).first()
@@ -396,7 +414,7 @@ def record_distribution():
         }), 422
 
     # 3. Mantiq 1: N-nqso l-Stock
-    stock.quantite_disponible -= quantite_donnee
+    # stock.quantite_disponible -= quantite_donnee
 
     # 4. Mantiq 2: N-creerw traçabilité f table 'Distribuer'
     nouvelle_distribution = Distribuer(
