@@ -1,0 +1,12 @@
+# Sensitive files
+**/.env
+**/.env.local
+
+# Python
+**/__pycache__/
+**/*.pyc
+venv/
+env/
+
+# VS Code
+.vscode/
