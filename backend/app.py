@@ -286,18 +286,26 @@ def cancel_my_reservation():
     if not sinistre or sinistre.id_point is None:
         return jsonify({"message": "No reservation found to cancel."}), 404
     # 2. Qallab 3la l-blassa (Point) li kan chad
-    point = PointAffectation.query.get(sinistre.id_point)  
+    point = PointAffectation.query.get(sinistre.id_point) 
+    id_zone_concernee = None 
     if point:
         # 3. Rjje3 l-blassa 'Libre'
         point.statut = 'Libre'
+        id_zone_concernee = point.id_zone # Hna n-jibou l-id_zone bach n-siftoha l-Procedure mn ba3d
         # 4. Rjje3 l-capacite l-Zone (+1)
-        zone = ZoneRegroupement.query.get(point.id_zone)
-        if zone:
-            zone.capacite_restante += 1
+        #zone = ZoneRegroupement.query.get(point.id_zone)
+        #if zone:
+        #    zone.capacite_restante += 1
     # 5. Mhi l-lien mn l-profile dyal l-victime
     sinistre.id_point = None
     sinistre.statut_reservation = 'Cancelled' # Awla tqder t-khelliha 'Cancelled'
-    # 6. Enregistrer kolchi f l-base de données
+    db.session.flush() # Hadi darori bach n-jibou l-id_point li tbdl f MySQL o n-siftoha l-Procedure
+
+    # 6.N-3ytou l-Procedure bash t-زيد l-blassa f l-hssab dyal capacite_restante
+    if id_zone_concernee:
+        sql_call = text("CALL sp_refresh_capacity(:z)")
+        db.session.execute(sql_call, {'z': id_zone_concernee})
+    # 7. Enregistrer kolchi f l-base de données
     db.session.commit()
     return jsonify({"message": "Cancelled"}), 200
 
