@@ -7,11 +7,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from models import Distribuer, Equipe, PointAffectation, db, User, Sinistre,ZoneRegroupement,Ressource,Stocker
 from functools import wraps
+from flask_cors import CORS
 
 # Chargement des variables d'environnement
 load_dotenv()
 
 app = Flask(__name__)
+CORS(app)
 
 # Configuration MySQL mn .env
 db_user = os.getenv('DB_USER')
@@ -104,6 +106,8 @@ def login():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
+    print(email,password)
+
 
     # 1. N-qalbo 3la l-user f l-DB b l-email
     user = User.query.filter_by(email=email).first()

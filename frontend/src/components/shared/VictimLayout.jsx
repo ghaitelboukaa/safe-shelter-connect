@@ -1,0 +1,14 @@
+import { Outlet } from "react-router-dom";
+import { VictimNavbar } from "../shared/Navbar";
+
+/** Layout for the mobile-first victim portal */
+export function VictimLayout() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+      <VictimNavbar />
+      <main className="pt-14 max-w-lg mx-auto px-4 pb-8">
+        <Outlet />
+      </main>
+    </div>
+  );
+}

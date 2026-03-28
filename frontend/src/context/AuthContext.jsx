@@ -1,0 +1,92 @@
+import { createContext, useContext, useState, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
+import { authService } from "../api/authService";
+
+// ── Context ──────────────────────────────────────────────────────────────────
+const AuthContext = createContext(null);
+
+// ── Provider ──────────────────────────────────────────────────────────────────
+export function AuthProvider({ children }) {
+  const navigate = useNavigate();
+
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem("access_token");
+    const role = localStorage.getItem("user_role");
+    return token ? { token, role } : null;
+  });
+
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ── Login ──────────────────────────────────────────────────────────────
+  const login = useCallback(async (credentials) => {
+    setIsLoading(true);
+    try {
+      const res = await authService.login(credentials);
+      const { access_token, role } = res.data;
+
+      localStorage.setItem("access_token", access_token);
+      localStorage.setItem("user_role", role);
+
+      setUser({ token: access_token, role });
+      toast.success("Welcome back! You're now logged in.");
+
+      if (role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/victim/portal");
+      }
+    } catch {
+      // errors handled by Axios interceptor
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  // ── Register ───────────────────────────────────────────────────────────
+  const register = useCallback(async (userData) => {
+    setIsLoading(true);
+    try {
+      await authService.register(userData);
+      toast.success("Account created! Please log in.");
+      navigate("/login");
+    } catch {
+      // errors handled by Axios interceptor
+    } finally {
+      setIsLoading(false);
+    }
+  }, [navigate]);
+
+  // ── Logout ─────────────────────────────────────────────────────────────
+  const logout = useCallback(async () => {
+    try {
+      await authService.logout();
+    } catch {
+      // ignore – still clear local state
+    } finally {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("user_role");
+      setUser(null);
+      toast.info("You've been logged out.");
+      navigate("/login");
+    }
+  }, [navigate]);
+
+  const isAdmin = user?.role === "admin";
+  const isAuthenticated = !!user;
+
+  return (
+    <AuthContext.Provider
+      value={{ user, isLoading, isAuthenticated, isAdmin, login, register, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");
+  return ctx;
+}

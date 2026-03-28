@@ -10,3 +10,31 @@ env/
 
 # VS Code
 .vscode/
+
+
+
+# Dependencies
+**/node_modules/
+node_modules/
+
+# Production
+**/dist/
+dist/
+
+# --- Environment Variables (SENSITIVE DATA) ---
+# Hadou fihom les passwords o API keys, darori may-t-pushawch!
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+backend/.env
+
+# --- IDE & OS Files ---
+# Fichiers dyal VS Code awla l-system dyal l-PC
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log

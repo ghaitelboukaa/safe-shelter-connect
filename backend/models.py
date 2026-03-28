@@ -38,7 +38,7 @@ class Sinistre(db.Model):
     cin = db.Column(db.String(20), unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id_user'))
     # Jdid: bach n-3rfo l-etat dyal reservation
-    statut_reservation = db.Column(db.Enum('Pending', 'Confirmed', 'Rejected'), default='Pending')
+    statut_reservation = db.Column(db.Enum('Pending', 'Confirmed', 'Rejected'), default='Null')
     id_point = db.Column(db.Integer, db.ForeignKey('pointaffectation.id_point'))
 
 
