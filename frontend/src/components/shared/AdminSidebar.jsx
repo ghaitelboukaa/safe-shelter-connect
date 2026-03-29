@@ -14,17 +14,23 @@ import { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
 
-const NAV_ITEMS = [
-  { to: "/admin/dashboard",     icon: LayoutDashboard, label: "Dashboard"     },
-  { to: "/admin/reservations",  icon: Users,           label: "Reservations"  },
-  { to: "/admin/zones",         icon: MapPin,          label: "Zones"         },
-  { to: "/admin/logistics",     icon: Package,         label: "Logistics"     },
-];
-
 export function AdminSidebar() {
-  const { logout } = useAuth();
+  const { logout, isSuperAdmin } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const navItems = [
+    { to: "/admin/dashboard",     icon: LayoutDashboard, label: "Dashboard"     },
+    { to: "/admin/reservations",  icon: Users,           label: "Reservations"  },
+    { to: "/admin/logistics",     icon: Package,         label: "Logistics"     },
+    { to: "/admin/teams",         icon: Users,           label: "Teams"         },
+    { to: "/admin/victims",       icon: Users,           label: "Victims"       },
+  ];
+
+  if (isSuperAdmin) {
+    navItems.push({ to: "/admin/zones", icon: MapPin, label: "Zones" });
+    navItems.push({ to: "/admin/users", icon: ShieldAlert, label: "Manage Admins" });
+  }
 
   const sidebarContent = (
     <div className="flex flex-col h-full">
@@ -43,7 +49,7 @@ export function AdminSidebar() {
 
       {/* Nav items */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
+        {navItems.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}
             to={to}

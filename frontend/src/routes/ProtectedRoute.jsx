@@ -16,6 +16,14 @@ export function AdminRoute() {
   return <Outlet />;
 }
 
+// ── Require super_admin role ───────────────────────────────────────────────
+export function SuperAdminRoute() {
+  const { isAuthenticated, isSuperAdmin } = useAuth();
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isSuperAdmin) return <Navigate to="/admin/dashboard" replace />;
+  return <Outlet />;
+}
+
 // ── Require sinistre role ──────────────────────────────────────────────────
 export function VictimRoute() {
   const { isAuthenticated, isAdmin } = useAuth();

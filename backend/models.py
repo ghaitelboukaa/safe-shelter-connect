@@ -21,13 +21,14 @@ class PointAffectation(db.Model):
     statut = db.Column(db.Enum('Libre', 'Occup'), default='Libre')
     id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
 
-# 3. User (Mafihach Foreign Keys)
+# 3. User (Mafihach Foreign Keys par defaut, sauf l-Admin li m-connecte m3a Zone)
 class User(db.Model):
     __tablename__ = 'user'
     id_user = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(20), default='sinistre')  # 'admin' aw 'sinistre'
+    role = db.Column(db.String(20), default='sinistre')  # 'super_admin', 'admin', aw 'sinistre'
+    id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'), nullable=True)
 
 # 4. Sinistre (Hwa l-lakhr hit fih Foreign Keys l-User o l-PointAffectation)
 class Sinistre(db.Model):
@@ -38,7 +39,7 @@ class Sinistre(db.Model):
     cin = db.Column(db.String(20), unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id_user'))
     # Jdid: bach n-3rfo l-etat dyal reservation
-    statut_reservation = db.Column(db.Enum('Pending', 'Confirmed', 'Rejected'), default='Null')
+    statut_reservation = db.Column(db.Enum('Pending', 'Confirmed', 'Rejected'), default=None)
     id_point = db.Column(db.Integer, db.ForeignKey('pointaffectation.id_point'))
 
 
@@ -72,5 +73,5 @@ class Equipe(db.Model):
     id_equipe = db.Column(db.Integer, primary_key=True)
     role = db.Column(db.String(100))
     contact = db.Column(db.String(20))
-    #id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
+    id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
     

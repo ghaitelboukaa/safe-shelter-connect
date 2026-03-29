@@ -30,11 +30,16 @@ api.interceptors.response.use(
     const data = error.response?.data;
     const message = data?.message || "An unexpected error occurred.";
     const errorCode = data?.error;
+    const isAuthPage = window.location.pathname === "/login" || window.location.pathname === "/register";
+
+    if (isAuthPage && status !== 500) {
+       return Promise.reject(error);
+    }
 
     switch (status) {
       case 401:
-        // Token expired or invalid → force logout
-        if (window.location.pathname !== "/login") {
+        // Token expired OR login failed
+        if (!isAuthPage) {
           localStorage.removeItem("access_token");
           localStorage.removeItem("user_role");
           toast.error("Session expired. Please log in again.");

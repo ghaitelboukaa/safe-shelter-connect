@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import {
   ProtectedRoute,
   AdminRoute,
+  SuperAdminRoute,
   VictimRoute,
   GuestRoute,
 } from "./routes/ProtectedRoute";
@@ -18,16 +19,18 @@ import { AdminLayout } from "./components/shared/AdminLayout";
 import HomePage from "./pages/Home/HomePage";
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
-import VictimPortalPage from "./pages/Victim/VictimPortalPage";
+import VictimDashboardPage from "./pages/Victim/VictimDashboardPage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import AdminReservationsPage from "./pages/Admin/AdminReservationsPage";
 import AdminZonesPage from "./pages/Admin/AdminZonesPage";
 import AdminLogisticsPage from "./pages/Admin/AdminLogisticsPage";
+import AdminUserManager from "./pages/Admin/AdminUserManager";
+import TeamManagementPage from "./pages/Admin/TeamManagementPage";
+import VictimDirectoryPage from "./pages/Admin/VictimDirectoryPage";
 
 export default function App() {
   return (
     <>
-      {/* Global sonner toast container */}
       <Toaster
         position="top-right"
         richColors
@@ -42,12 +45,11 @@ export default function App() {
       />
 
       <Routes>
-        {/* ── Public routes (landing + auth) ───────────────────── */}
+        {/* ── Public routes ─────────────────────────────────────── */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
         </Route>
 
-        {/* ── Guest-only routes (redirect if already logged in) ── */}
         <Route element={<GuestRoute />}>
           <Route path="/login"    element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -56,17 +58,24 @@ export default function App() {
         {/* ── Victim portal ─────────────────────────────────────── */}
         <Route element={<VictimRoute />}>
           <Route element={<VictimLayout />}>
-            <Route path="/victim/portal" element={<VictimPortalPage />} />
+            <Route path="/victim/portal" element={<VictimDashboardPage />} />
           </Route>
         </Route>
 
-        {/* ── Admin portal ──────────────────────────────────────── */}
+        {/* ── Admin portal (Shared) ─────────────────────────────── */}
         <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard"    element={<AdminDashboardPage />} />
             <Route path="/admin/reservations" element={<AdminReservationsPage />} />
-            <Route path="/admin/zones"        element={<AdminZonesPage />} />
             <Route path="/admin/logistics"    element={<AdminLogisticsPage />} />
+            <Route path="/admin/teams"        element={<TeamManagementPage />} />
+            <Route path="/admin/victims"      element={<VictimDirectoryPage />} />
+            
+            {/* ── Super Admin Only ─────────────────────────────── */}
+            <Route element={<SuperAdminRoute />}>
+               <Route path="/admin/zones" element={<AdminZonesPage />} />
+               <Route path="/admin/users" element={<AdminUserManager />} />
+            </Route>
           </Route>
         </Route>
 

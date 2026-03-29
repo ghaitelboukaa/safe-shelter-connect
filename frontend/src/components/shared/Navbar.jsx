@@ -61,8 +61,8 @@ export function VictimNavbar() {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/30">
-      <div className="max-w-lg mx-auto px-4">
-        <div className="flex items-center justify-between h-14">
+      <div className="max-w-6xl mx-auto px-4">
+        <div className="flex items-center justify-between h-16">
           <Link to="/victim/portal" className="flex items-center gap-2">
             <ShieldAlert className="h-5 w-5 text-primary-800" />
             <span className="font-bold text-primary-800 text-sm">Safe-Shelter Connect</span>

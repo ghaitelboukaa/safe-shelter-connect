@@ -11,13 +11,22 @@ export default function RegisterPage() {
     email: "", password: "", nom: "", prenom: "", cin: "",
   });
   const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    if (error) setError(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await register(form);
+    setError(null);
+    try {
+      await register(form);
+    } catch (err) {
+      const message = err.response?.data?.message || "Registration failed. Please try again.";
+      setError(message);
+    }
   };
 
   return (
@@ -31,6 +40,14 @@ export default function RegisterPage() {
           <h1 className="text-2xl font-extrabold text-slate-900">Create an account</h1>
           <p className="text-slate-500 text-sm mt-1">Register to request emergency shelter</p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-fade-in shadow-sm">
+            <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-red-800 leading-tight">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name row */}

@@ -27,6 +27,9 @@ export const reservationService = {
   /** POST /api/v1/reservations  { id_zone } */
   create: (id_zone) => api.post("/api/v1/reservations", { id_zone }),
 
+  /** GET /api/v1/victim/dashboard */
+  getDashboard: () => api.get("/api/v1/victim/dashboard"),
+
   /** DELETE /api/v1/reservations/me */
   cancel: () => api.delete("/api/v1/reservations/me"),
 };

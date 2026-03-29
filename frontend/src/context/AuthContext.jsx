@@ -31,13 +31,13 @@ export function AuthProvider({ children }) {
       setUser({ token: access_token, role });
       toast.success("Welcome back! You're now logged in.");
 
-      if (role === "admin") {
+      if (role === "super_admin" || role === "admin") {
         navigate("/admin/dashboard");
       } else {
         navigate("/victim/portal");
       }
-    } catch {
-      // errors handled by Axios interceptor
+    } catch (err) {
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -50,8 +50,8 @@ export function AuthProvider({ children }) {
       await authService.register(userData);
       toast.success("Account created! Please log in.");
       navigate("/login");
-    } catch {
-      // errors handled by Axios interceptor
+    } catch (err) {
+      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -72,12 +72,13 @@ export function AuthProvider({ children }) {
     }
   }, [navigate]);
 
-  const isAdmin = user?.role === "admin";
+  const isAdmin = user?.role === "admin" || user?.role === "super_admin";
+  const isSuperAdmin = user?.role === "super_admin";
   const isAuthenticated = !!user;
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated, isAdmin, login, register, logout }}
+      value={{ user, isLoading, isAuthenticated, isAdmin, isSuperAdmin, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>

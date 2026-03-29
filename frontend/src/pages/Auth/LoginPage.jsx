@@ -7,13 +7,22 @@ export default function LoginPage() {
   const { login, isLoading } = useAuth();
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPass, setShowPass] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
     setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
+    if (error) setError(null);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await login(form);
+    setError(null);
+    try {
+      await login(form);
+    } catch (err) {
+      const message = err.response?.data?.message || "Invalid email or password.";
+      setError(message);
+    }
   };
 
   return (
@@ -28,6 +37,14 @@ export default function LoginPage() {
           <h1 className="text-2xl font-extrabold text-slate-900">Welcome back</h1>
           <p className="text-slate-500 text-sm mt-1">Sign in to Safe-Shelter Connect</p>
         </div>
+
+        {/* Error Alert */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-start gap-3 animate-fade-in shadow-sm">
+            <ShieldAlert className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+            <p className="text-sm font-medium text-red-800 leading-tight">{error}</p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Email */}

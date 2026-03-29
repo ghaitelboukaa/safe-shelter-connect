@@ -28,6 +28,21 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 db.init_app(app)
 jwt = JWTManager(app)
 
+def super_admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        verify_jwt_in_request()
+        user_id = get_jwt_identity()
+        user = User.query.get(user_id)
+        if not user or user.role != 'super_admin':
+            return jsonify({
+                "error": "forbidden",
+                "message": "Super Admin access required",
+                "status": 403
+            }), 403
+        return fn(*args, **kwargs)
+    return wrapper
+
 def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
@@ -38,8 +53,8 @@ def admin_required(fn):
         # 3. Qallab 3la l-user f MySQL
         user = User.query.get(user_id)
         
-        # 4. Check role
-        if not user or user.role != 'admin':
+        # 4. Check role (Super Admin can do anything an Admin can)
+        if not user or user.role not in ['admin', 'super_admin']:
             return jsonify({
                 "error": "forbidden",
                 "message": "Valid token but insufficient role",
@@ -170,9 +185,9 @@ def get_single_zone(id):
         "stocks": stock_data
     }), 200
 
-# 3. Create Zone (Admin Only)
+# 3. Create Zone (Super Admin Only)
 @app.route('/api/v1/zones', methods=['POST'])
-@admin_required # Hna fin katisti l-role!
+@super_admin_required # Hna fin katisti l-role!
 def create_zone():
     # ... logic check role admin ...
     data = request.get_json()
@@ -183,12 +198,23 @@ def create_zone():
         capacite_restante=data['capacite_max'] # b l-awal katkun khawya
     )
     db.session.add(new_zone)
+    db.session.flush() # N-jibou l-id bla commit l-final
+
+    # Auto-generer l-points d'affectation
+    for i in range(new_zone.capacite_max):
+        new_point = PointAffectation(
+            num_emplacement=f"Z{new_zone.id_zone}-S{i+1}",
+            statut='Libre',
+            id_zone=new_zone.id_zone
+        )
+        db.session.add(new_point)
+
     db.session.commit()
     return jsonify({"message": "Created", "id_zone": new_zone.id_zone}), 201
 
-# 4. Update Zone (Admin Only)
+# 4. Update Zone (Super Admin Only)
 @app.route('/api/v1/zones/<int:id>', methods=['PUT'])
-@admin_required # Hna fin katisti l-role!
+@super_admin_required # Hna fin katisti l-role!
 def update_zone(id):
     zone = ZoneRegroupement.query.get_or_404(id)
     data = request.get_json()
@@ -202,7 +228,7 @@ def update_zone(id):
     return jsonify({"message": "Updated"}), 200
 
 @app.route('/api/v1/zones/<int:id>', methods=['DELETE'])
-@admin_required # Hna fin katisti l-role!
+@super_admin_required # Hna fin katisti l-role!
 def delete_zone(id):
     zone = ZoneRegroupement.query.get_or_404(id)
     db.session.delete(zone)
@@ -313,6 +339,54 @@ def cancel_my_reservation():
     db.session.commit()
     return jsonify({"message": "Cancelled"}), 200
 
+# Unified Victim Dashboard
+@app.route('/api/v1/victim/dashboard', methods=['GET'])
+@jwt_required()
+def get_victim_dashboard():
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    sinistre = Sinistre.query.filter_by(user_id=user_id).first()
+    
+    # 1. Reservation
+    res_data = None
+    zone_data = None
+    if sinistre and sinistre.id_point:
+        point = PointAffectation.query.get(sinistre.id_point)
+        zone = ZoneRegroupement.query.get(point.id_zone)
+        res_data = {
+            "id_sinistre": sinistre.id_sinistre,
+            "statut_reservation": sinistre.statut_reservation,
+            "emplacement": point.num_emplacement,
+            "nom_zone": zone.nom_zone
+        }
+        zone_data = {
+            "nom_zone": zone.nom_zone,
+            "adress_gps": zone.adress_gps,
+            "id_zone": zone.id_zone
+        }
+        
+    # 2. Statistics (nearby zones)
+    all_zones = ZoneRegroupement.query.all()
+    zones_list = []
+    for z in all_zones:
+        zones_list.append({
+            "id_zone": z.id_zone,
+            "nom_zone": z.nom_zone,
+            "capacite_restante": z.capacite_restante,
+            "pct_full": round(((z.capacite_max - z.capacite_restante) / z.capacite_max) * 100, 1) if z.capacite_max > 0 else 0
+        })
+
+    return jsonify({
+        "profile": {
+            "nom": sinistre.nom if sinistre else None,
+            "prenom": sinistre.prenom if sinistre else None,
+            "email": user.email
+        },
+        "reservation": res_data,
+        "zone_assigned": zone_data,
+        "available_zones": zones_list
+    }), 200
+
 
 @app.route('/api/v1/admin/reservations', methods=['GET'])
 @admin_required
@@ -320,9 +394,18 @@ def list_all_reservations():
     # N-akhdo nmra dyal page mn l-URL (par defaut 1)
     page = request.args.get('page', 1, type=int)
     
-    # N-jibou ghir nass li aslan darou reservation (machi 'None')
-    # Pagination: 10 dyal nass f kol page
-    pagination = Sinistre.query.filter(Sinistre.statut_reservation != 'None').paginate(page=page, per_page=10, error_out=False)
+    # Security check: if standard admin, filter by their assigned zone
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    query = Sinistre.query.filter(Sinistre.statut_reservation != 'None')
+    
+    if user.role == 'admin':
+        if not user.id_zone:
+             return jsonify({"error": "unauthorized", "message": "Admin not assigned to any zone"}), 403
+        query = query.join(PointAffectation).filter(PointAffectation.id_zone == user.id_zone)
+    
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
     
     reservations_list = []
     for r in pagination.items:
@@ -351,6 +434,14 @@ def update_reservation_status(id):
     action = data.get('action') # Kat-tsnna 'confirm' awla 'reject'
     
     sinistre = Sinistre.query.get_or_404(id)
+
+    # Security check: if standard admin, ensure reservation is in their zone
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user.role == 'admin':
+        point_check = PointAffectation.query.get(sinistre.id_point) if sinistre.id_point else None
+        if not point_check or point_check.id_zone != user.id_zone:
+            return jsonify({"error": "forbidden", "message": "You can only manage reservations in your assigned zone"}), 403
 
     if sinistre.statut_reservation != 'Pending':
         return jsonify({"error": "bad_request", "message": "This reservation is not in the Pending state"}), 400
@@ -417,6 +508,12 @@ def record_distribution():
     # 1. Virifier wax kayn had l-stock f table 'Stocker'
     stock = Stocker.query.filter_by(id_zone=id_zone, id_ressource=id_ressource).first()
     
+    # Security check: if standard admin, must be their zone
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user.role == 'admin' and int(id_zone) != user.id_zone:
+        return jsonify({"error": "forbidden", "message": "You can only distribute in yourassigned zone"}), 403
+
     # 2. Error 422 (Insufficient Stock) kima 3ndk f l-lista 5.6
     if not stock or stock.quantite_disponible < quantite_donnee:
         return jsonify({
@@ -462,6 +559,12 @@ def list_resources():
 @app.route('/api/v1/zones/<int:id_zone>/stocks', methods=['GET'])
 @admin_required
 def get_zone_stocks(id_zone):
+    # Security check: if standard admin, must be their zone
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user.role == 'admin' and int(id_zone) != user.id_zone:
+        return jsonify({"error": "forbidden", "message": "You can only view stocks in your assigned zone"}), 403
+
     # 1. Njibou ga3 l-lignat dyal had l-zone mn table 'Stocker'
     stocks = Stocker.query.filter_by(id_zone=id_zone).all()
     
@@ -509,10 +612,44 @@ def list_teams():
 @app.route('/api/v1/admin/dashboard', methods=['GET'])
 @admin_required
 def get_dashboard_summary():
-    # 1. Total Zones
+    # Aggregated stats logic
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    
+    if user.role == 'admin':
+        # Scoped dashboard for specific zone
+        if not user.id_zone:
+             return jsonify({"error": "unauthorized", "message": "Admin not assigned to any zone"}), 403
+        
+        zone = ZoneRegroupement.query.get(user.id_zone)
+        total_reservations = Sinistre.query.join(PointAffectation).filter(PointAffectation.id_zone == user.id_zone, Sinistre.statut_reservation != 'None').count()
+        pending = Sinistre.query.join(PointAffectation).filter(PointAffectation.id_zone == user.id_zone, Sinistre.statut_reservation == 'Pending').count()
+        confirmed = Sinistre.query.join(PointAffectation).filter(PointAffectation.id_zone == user.id_zone, Sinistre.statut_reservation == 'Confirmed').count()
+        
+        places_occupees = zone.capacite_max - zone.capacite_restante
+        pct_full = round((places_occupees / zone.capacite_max) * 100, 1) if zone.capacite_max > 0 else 0
+        
+        critical_stock = False
+        stocks = Stocker.query.filter_by(id_zone=user.id_zone).all()
+        for s in stocks:
+            if s.quantite_disponible < 50:
+                critical_stock = True
+                break
+        
+        return jsonify({
+            "scope": "zone",
+            "nom_zone": zone.nom_zone,
+            "total_reservations": total_reservations,
+            "pending": pending,
+            "confirmed": confirmed,
+            "pct_full": pct_full,
+            "critical_stock": critical_stock
+        }), 200
+
+    # 1. Total Zones (For Super Admin)
     total_zones = ZoneRegroupement.query.count()
     
-    # 2. I7sa2iyat dyal Reservations
+    # ... rest of the logic remains for Super Admin ...
     total_reservations = Sinistre.query.filter(Sinistre.statut_reservation != 'None').count()
     pending = Sinistre.query.filter_by(statut_reservation='Pending').count()
     confirmed = Sinistre.query.filter_by(statut_reservation='Confirmed').count()
@@ -552,13 +689,131 @@ def get_dashboard_summary():
         "zones": zones_data
     }), 200
 
-# 1. Refresh Token: Bach l-user may-t-disconnectach dima
-#@app.route('/api/v1/auth/refresh', methods=['POST'])
-#@jwt_required(refresh=True)
-#def refresh():
- #   current_user = get_jwt_identity()
-  #  new_access_token = create_access_token(identity=current_user)
-   # return jsonify({"access_token": new_access_token}), 200
+# --- INVENTORY ADDITIONS ---
+@app.route('/api/v1/admin/resources', methods=['POST'])
+@admin_required
+def create_resource():
+    data = request.get_json()
+    new_res = Ressource(
+        type_ressource=data.get('type_ressource'),
+        unite_mesure=data.get('unite_mesure')
+    )
+    db.session.add(new_res)
+    db.session.commit()
+    return jsonify({"message": "Resource created", "id_ressource": new_res.id_ressource}), 201
+
+@app.route('/api/v1/admin/zones/<int:id_zone>/stocks', methods=['POST'])
+@admin_required
+def restock_zone(id_zone):
+    # Security check: if standard admin, must be their zone
+    current_user_id = get_jwt_identity()
+    user = User.query.get(current_user_id)
+    if user.role == 'admin' and int(id_zone) != user.id_zone:
+        return jsonify({"error": "forbidden", "message": "You can only restock in your assigned zone"}), 403
+
+    data = request.get_json()
+    id_ressource = data.get('id_ressource')
+    quantite = data.get('quantite')
+    
+    stock = Stocker.query.filter_by(id_zone=id_zone, id_ressource=id_ressource).first()
+    if stock:
+        stock.quantite_disponible += float(quantite)
+    else:
+        stock = Stocker(id_zone=id_zone, id_ressource=id_ressource, quantite_disponible=float(quantite))
+        db.session.add(stock)
+        
+    db.session.commit()
+    return jsonify({"message": "Stock updated successfully", "new_quantity": stock.quantite_disponible}), 200
+
+# --- TEAM MANAGEMENT ---
+@app.route('/api/v1/admin/teams', methods=['POST'])
+@admin_required
+def create_team():
+    data = request.get_json()
+    new_team = Equipe(
+        role=data.get('role'),
+        contact=data.get('contact'),
+        id_zone=data.get('id_zone')
+    )
+    db.session.add(new_team)
+    db.session.commit()
+    return jsonify({"message": "Team created", "id_equipe": new_team.id_equipe}), 201
+
+@app.route('/api/v1/admin/teams/<int:id>', methods=['PUT', 'PATCH'])
+@admin_required
+def update_team(id):
+    team = Equipe.query.get_or_404(id)
+    data = request.get_json()
+    
+    if 'role' in data: team.role = data['role']
+    if 'contact' in data: team.contact = data['contact']
+    if 'id_zone' in data: team.id_zone = data['id_zone']
+    
+    db.session.commit()
+    return jsonify({"message": "Team updated"}), 200
+
+@app.route('/api/v1/admin/teams/<int:id>', methods=['DELETE'])
+@admin_required
+def delete_team(id):
+    team = Equipe.query.get_or_404(id)
+    db.session.delete(team)
+    db.session.commit()
+    return jsonify({"message": "Team deleted"}), 200
+
+# --- USER MANAGEMENT & PROFILES ---
+@app.route('/api/v1/admin/users', methods=['POST'])
+@super_admin_required
+def create_admin_user():
+    data = request.get_json()
+    email = data.get('email')
+    password = data.get('password')
+    role = data.get('role', 'admin') # Par defaut 'admin'
+    id_zone = data.get('id_zone') # Optional but recommended for role='admin'
+    
+    if User.query.filter_by(email=email).first():
+        return jsonify({"message": "User already exists"}), 400
+        
+    hashed_pw = generate_password_hash(password)
+    new_user = User(email=email, password=hashed_pw, role=role, id_zone=id_zone)
+    db.session.add(new_user)
+    db.session.commit()
+    
+    zone_msg = f" linked to zone {id_zone}" if id_zone else ""
+    return jsonify({"message": f"User with role {role}{zone_msg} created"}), 201
+
+@app.route('/api/v1/admin/victims', methods=['GET'])
+@admin_required
+def list_victims():
+    page = request.args.get('page', 1, type=int)
+    pagination = Sinistre.query.paginate(page=page, per_page=10, error_out=False)
+    
+    victims = []
+    for v in pagination.items:
+        victims.append({
+            "id_sinistre": v.id_sinistre,
+            "nom": v.nom,
+            "prenom": v.prenom,
+            "cin": v.cin,
+            "statut_reservation": v.statut_reservation
+        })
+    return jsonify({"victims": victims, "total": pagination.total, "page": pagination.page}), 200
+
+@app.route('/api/v1/profile', methods=['PUT', 'PATCH'])
+@jwt_required()
+def update_profile():
+    user_id = get_jwt_identity()
+    data = request.get_json()
+    
+    sinistre = Sinistre.query.filter_by(user_id=user_id).first()
+    if not sinistre:
+        return jsonify({"message": "Profile not found"}), 404
+        
+    if 'nom' in data: sinistre.nom = data['nom']
+    if 'prenom' in data: sinistre.prenom = data['prenom']
+    if 'cin' in data: sinistre.cin = data['cin']
+    
+    db.session.commit()
+    return jsonify({"message": "Profile updated"}), 200
 
 # 2. Logout: Revoke token
 @app.route('/api/v1/auth/logout', methods=['POST'])
