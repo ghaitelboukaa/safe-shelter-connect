@@ -5,7 +5,7 @@ from flask_jwt_extended import JWTManager, create_access_token, jwt_required, ge
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
-from models import Distribuer, Equipe, PointAffectation, db, User, Sinistre,ZoneRegroupement,Ressource,Stocker
+from models import Distribuer, Equipe, PointAffectation, db, User, Sinistre, ZoneRegroupement, Ressource, Stocker, Mission
 from functools import wraps
 from flask_cors import CORS
 
@@ -391,14 +391,25 @@ def get_victim_dashboard():
 @app.route('/api/v1/admin/reservations', methods=['GET'])
 @admin_required
 def list_all_reservations():
-    # N-akhdo nmra dyal page mn l-URL (par defaut 1)
     page = request.args.get('page', 1, type=int)
+    search_query = request.args.get('q', '').strip()
     
     # Security check: if standard admin, filter by their assigned zone
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     
-    query = Sinistre.query.filter(Sinistre.statut_reservation != 'None')
+    query = Sinistre.query.filter(Sinistre.statut_reservation.isnot(None))
+    
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Sinistre.nom.ilike(f'%{search_query}%'),
+                Sinistre.prenom.ilike(f'%{search_query}%'),
+                Sinistre.cin.ilike(f'%{search_query}%'),
+                (Sinistre.nom + " " + Sinistre.prenom).ilike(f"%{search_query}%"),
+                (Sinistre.prenom + " " + Sinistre.nom).ilike(f"%{search_query}%")
+            )
+        )
     
     if user.role == 'admin':
         if not user.id_zone:
@@ -785,7 +796,21 @@ def create_admin_user():
 @admin_required
 def list_victims():
     page = request.args.get('page', 1, type=int)
-    pagination = Sinistre.query.paginate(page=page, per_page=10, error_out=False)
+    search_query = request.args.get('q', '').strip()
+    
+    query = Sinistre.query
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Sinistre.nom.ilike(f'%{search_query}%'),
+                Sinistre.prenom.ilike(f'%{search_query}%'),
+                Sinistre.cin.ilike(f'%{search_query}%'),
+                (Sinistre.nom + " " + Sinistre.prenom).ilike(f"%{search_query}%"),
+                (Sinistre.prenom + " " + Sinistre.nom).ilike(f"%{search_query}%")
+            )
+        )
+    
+    pagination = query.paginate(page=page, per_page=10, error_out=False)
     
     victims = []
     for v in pagination.items:
@@ -831,11 +856,84 @@ def get_profile():
     current_user = get_jwt_identity()
     return jsonify(logged_in_as=current_user), 200
 
+@app.route('/api/v1/search', methods=['GET'])
+@jwt_required()
+def global_search():
+    query = request.args.get('q', '').strip()
+    if not query:
+        return jsonify({"results": []}), 200
 
+    user_id = get_jwt_identity()
+    user = User.query.get(user_id)
+    
+    results = []
 
+    # 1. Search Zones (Available to all)
+    zones = ZoneRegroupement.query.filter(ZoneRegroupement.nom_zone.ilike(f'%{query}%')).all()
+    for z in zones:
+        results.append({
+            "type": "zone",
+            "id": z.id_zone,
+            "label": z.nom_zone,
+            "sublabel": z.adress_gps,
+            "link": "/admin/zones" if user.role in ['admin', 'super_admin'] else "/victim/portal"
+        })
 
+    # 2. Search Restricted Entities (Admin/Equipe only)
+    if user.role in ['admin', 'super_admin', 'equipe']:
+        # Victims
+        victims = Sinistre.query.filter(
+            (Sinistre.nom.ilike(f'%{query}%')) | 
+            (Sinistre.prenom.ilike(f'%{query}%')) | 
+            (Sinistre.cin.ilike(f'%{query}%'))
+        ).all()
+        for v in victims:
+            results.append({
+                "type": "victim",
+                "id": v.id_sinistre,
+                "label": f"{v.prenom} {v.nom}",
+                "sublabel": f"CIN: {v.cin}",
+                "link": "/admin/victims"
+            })
 
-   
+        # Teams
+        teams = Equipe.query.filter(Equipe.role.ilike(f'%{query}%')).all()
+        for t in teams:
+            results.append({
+                "type": "team",
+                "id": t.id_equipe,
+                "label": t.role,
+                "sublabel": f"Contact: {t.contact}",
+                "link": "/admin/teams"
+            })
+
+        # Logistics
+        resources = Ressource.query.filter(Ressource.type_ressource.ilike(f'%{query}%')).all()
+        for r in resources:
+            results.append({
+                "type": "logistics",
+                "id": r.id_ressource,
+                "label": r.type_ressource,
+                "sublabel": "Inventory Resource",
+                "link": "/admin/logistics"
+            })
+
+        # Missions
+        missions = Mission.query.filter(
+            (Mission.titre.ilike(f'%{query}%')) | 
+            (Mission.description.ilike(f'%{query}%'))
+        ).all()
+        for m in missions:
+            results.append({
+                "type": "mission",
+                "id": m.id_mission,
+                "label": m.titre,
+                "sublabel": f"Statut: {m.statut}",
+                "link": "/admin/missions"
+            })
+
+    return jsonify({"results": results}), 200
+
 
 if __name__ == '__main__':
     app.run(debug=True)

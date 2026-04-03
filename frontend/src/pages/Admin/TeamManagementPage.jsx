@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Users, Plus, Pencil, Trash2, Loader2, X, Check, MapPin, Phone } from "lucide-react";
+import { Users, Plus, Pencil, Trash2, Loader2, X, Check, MapPin, Phone, SearchX } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { zoneService } from "../../api/zoneService";
+import { SearchInput } from "../../components/shared/SearchInput";
 
 function TeamModal({ team, onClose, onSave, isSaving }) {
   const { data: zones } = useQuery({
@@ -33,15 +34,15 @@ function TeamModal({ team, onClose, onSave, isSaving }) {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Team Role</label>
-            <input value={form.role} onChange={(e) => setForm({...form, role: e.target.value})} required placeholder="e.g. Medical Unit" className="input-field" />
+            <input value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })} required placeholder="e.g. Medical Unit" className="input-field" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Contact</label>
-            <input value={form.contact} onChange={(e) => setForm({...form, contact: e.target.value})} required placeholder="e.g. +212 600..." className="input-field" />
+            <input value={form.contact} onChange={(e) => setForm({ ...form, contact: e.target.value })} required placeholder="e.g. +212 600..." className="input-field" />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Assigned Zone</label>
-            <select value={form.id_zone} onChange={(e) => setForm({...form, id_zone: e.target.value})} required className="input-field">
+            <select value={form.id_zone} onChange={(e) => setForm({ ...form, id_zone: e.target.value })} required className="input-field">
               <option value="">Select Zone</option>
               {zones?.map(z => <option key={z.id_zone} value={z.id_zone}>{z.nom_zone}</option>)}
             </select>
@@ -62,6 +63,7 @@ function TeamModal({ team, onClose, onSave, isSaving }) {
 export default function TeamManagementPage() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data: teams, isLoading } = useQuery({
     queryKey: ["teams"],
@@ -83,6 +85,11 @@ export default function TeamManagementPage() {
     onSuccess: () => { toast.success("Team deleted."); queryClient.invalidateQueries({ queryKey: ["teams"] }); },
   });
 
+  const filteredTeams = (teams || []).filter(t =>
+    t.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.contact.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -96,25 +103,46 @@ export default function TeamManagementPage() {
         <button onClick={() => setModal({ mode: "create" })} className="btn-primary py-2.5"><Plus className="h-4 w-4" /> New Team</button>
       </div>
 
+      <div className="max-w-md">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search teams by role or contact..."
+        />
+      </div>
+
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
           Array.from({ length: 3 }).map((_, i) => <div key={i} className="card p-5 h-32 animate-pulse bg-slate-100" />)
-        ) : teams?.map((team) => (
-          <div key={team.id_equipe} className="card p-5 group transition-all duration-300 hover:shadow-lg">
-            <div className="flex justify-between items-start mb-4">
-               <div>
+        ) : filteredTeams.length === 0 && teams?.length > 0 ? (
+          <div className="col-span-full card p-16 text-center text-slate-400 border-dashed border-2">
+            <SearchX className="h-12 w-12 mx-auto mb-3 text-slate-200" />
+            <p className="font-medium">No teams match your search "{searchTerm}"</p>
+            <button onClick={() => setSearchTerm("")} className="text-primary-800 text-sm font-bold mt-2">Clear search</button>
+          </div>
+        ) : teams?.length === 0 ? (
+          <div className="col-span-full card p-16 text-center text-slate-400">
+            <Users className="h-12 w-12 mx-auto mb-3 text-slate-200" />
+            <p className="font-medium">No teams yet. Create the first one!</p>
+          </div>
+        ) : (
+          filteredTeams.map((team) => (
+            <div key={team.id_equipe} className="card p-5 group transition-all duration-300 hover:shadow-lg">
+              <div className="flex justify-between items-start mb-4">
+                <div>
                   <h3 className="font-bold text-slate-900">{team.role}</h3>
                   <div className="flex items-center gap-1.5 text-xs text-slate-400 mt-1">
-                     <Phone className="h-3 w-3" /> {team.contact}
+                    <Phone className="h-3 w-3" /> {team.contact}
                   </div>
-               </div>
-               <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                </div>
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => setModal({ mode: "edit", team })} className="p-1.5 hover:bg-blue-100 rounded-lg text-slate-400"><Pencil className="h-3.5 w-3.5" /></button>
                   <button onClick={() => deleteMutation.mutate(team.id_equipe)} className="p-1.5 hover:bg-red-100 rounded-lg text-slate-400"><Trash2 className="h-3.5 w-3.5" /></button>
-               </div>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {modal && <TeamModal team={modal.team} onClose={() => setModal(null)} onSave={(d) => modal.mode === "edit" ? updateMutation.mutate({ id: modal.team.id_equipe, data: d }) : createMutation.mutate(d)} isSaving={createMutation.isPending || updateMutation.isPending} />}

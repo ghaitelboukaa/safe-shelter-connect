@@ -11,6 +11,9 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   PieChart, Pie, Cell, Legend
 } from "recharts";
+import { useState } from "react";
+import { SearchInput } from "../../components/shared/SearchInput";
+import { SearchX } from "lucide-react";
 
 const COLORS = ["#f59e0b", "#10b981", "#6366f1", "#ef4444"];
 
@@ -33,6 +36,7 @@ function KpiCard({ icon: Icon, label, value, color, bg }) {
 
 export default function AdminDashboardPage() {
   const { isSuperAdmin } = useAuth();
+  const [searchTerm, setSearchTerm] = useState("");
   
   const { data, isLoading, isError } = useQuery({
     queryKey: ["dashboard"],
@@ -57,6 +61,10 @@ export default function AdminDashboardPage() {
         fullName: z.nom_zone
       })) 
     : [];
+
+  const filteredZones = (data?.zones || []).filter(z => 
+    z.nom_zone.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-8 animate-fade-in pb-10">
@@ -186,27 +194,43 @@ export default function AdminDashboardPage() {
       {/* ── List View (Only for Super Admin) ────────────────────────── */}
       {isSuperAdmin && (
         <div className="card overflow-hidden">
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/10">
-            <h2 className="font-bold text-slate-800">Zone Registry</h2>
-            <div className="flex gap-4 text-[10px] font-black uppercase text-slate-400">
+          <div className="flex flex-col md:flex-row md:items-center justify-between px-6 py-4 border-b border-slate-100 bg-slate-50/10 gap-4">
+            <h2 className="font-bold text-slate-800 shrink-0">Zone Registry</h2>
+            <div className="flex-1 max-w-sm">
+               <SearchInput 
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Search zones..."
+                className="h-9"
+               />
+            </div>
+            <div className="flex gap-4 text-[10px] font-black uppercase text-slate-400 shrink-0">
                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500" /> Optimal</span>
                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-amber-400" /> High</span>
                <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-red-500" /> Full</span>
             </div>
           </div>
-          <div className="divide-y divide-slate-50">
-            {data?.zones?.map((zone) => (
-              <div key={zone.nom_zone} className="px-6 py-5 group hover:bg-slate-50/50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <span className="font-bold text-slate-800 text-sm">{zone.nom_zone}</span>
-                    {zone.critical_stock && <span className="bg-red-100 text-red-600 text-[9px] px-2 py-0.5 rounded-lg font-black tracking-widest uppercase">Low Stock</span>}
-                  </div>
-                  <span className="text-sm font-black text-slate-900">{Math.max(0, Math.min(100, zone.pct_full))}%</span>
-                </div>
-                <ProgressBar value={Math.max(0, Math.min(100, zone.pct_full))} />
+          <div className="divide-y divide-slate-50 max-h-[400px] overflow-y-auto">
+            {filteredZones.length === 0 && data?.zones?.length > 0 ? (
+              <div className="px-6 py-12 text-center text-slate-400">
+                <SearchX className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                <p className="text-sm font-medium">No zones match your search "{searchTerm}"</p>
+                <button onClick={() => setSearchTerm("")} className="text-primary-800 text-xs font-bold mt-2">Clear search</button>
               </div>
-            ))}
+            ) : (
+              filteredZones.map((zone) => (
+                <div key={zone.nom_zone} className="px-6 py-5 group hover:bg-slate-50/50 transition-colors">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <span className="font-bold text-slate-800 text-sm">{zone.nom_zone}</span>
+                      {zone.critical_stock && <span className="bg-red-100 text-red-600 text-[9px] px-2 py-0.5 rounded-lg font-black tracking-widest uppercase">Low Stock</span>}
+                    </div>
+                    <span className="text-sm font-black text-slate-900">{Math.max(0, Math.min(100, zone.pct_full))}%</span>
+                  </div>
+                  <ProgressBar value={Math.max(0, Math.min(100, zone.pct_full))} />
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}

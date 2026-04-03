@@ -1,15 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
-import { Users, Search, ChevronLeft, ChevronRight, Mail, Hash } from "lucide-react";
+import { Users, ChevronLeft, ChevronRight, SearchX } from "lucide-react";
 import { adminService } from "../../api/adminService";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { SearchInput } from "../../components/shared/SearchInput";
 
 export default function VictimDirectoryPage() {
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading } = useQuery({
-    queryKey: ["victims", page],
-    queryFn: () => adminService.getVictims(page).then((r) => r.data),
+    queryKey: ["victims", page, searchTerm],
+    queryFn: () => adminService.getVictims(page, searchTerm).then((r) => r.data),
   });
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -19,6 +26,14 @@ export default function VictimDirectoryPage() {
           <h1 className="text-2xl font-extrabold text-slate-900">Victim Directory</h1>
           <p className="text-slate-500 text-sm">Monitor and search all registered sinistres</p>
         </div>
+      </div>
+
+      <div className="max-w-md">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search by name or CIN..."
+        />
       </div>
 
       <div className="card overflow-hidden">
@@ -42,6 +57,14 @@ export default function VictimDirectoryPage() {
                     <td className="px-6 py-4"><div className="h-4 w-16 bg-slate-100 rounded" /></td>
                   </tr>
                 ))
+              ) : data?.victims?.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-20 text-center">
+                    <SearchX className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">No victims found matching "{searchTerm}"</p>
+                    <button onClick={() => setSearchTerm("")} className="text-primary-800 text-xs font-bold mt-2">Clear search</button>
+                  </td>
+                </tr>
               ) : data?.victims?.map((v) => (
                 <tr key={v.id_sinistre} className="hover:bg-slate-50 transition-colors">
                   <td className="px-6 py-4 font-bold text-slate-800">{v.nom} {v.prenom}</td>

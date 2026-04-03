@@ -1,23 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Users, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Loader2,
+  Users, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Loader2, SearchX,
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { Badge } from "../../components/ui/Badge";
 import { SkeletonRow } from "../../components/ui/Skeleton";
+import { SearchInput } from "../../components/shared/SearchInput";
 
 export default function AdminReservationsPage() {
   const [page, setPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
   const [loadingId, setLoadingId] = useState(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ["adminReservations", page],
-    queryFn: () => adminService.getReservations(page).then((r) => r.data),
-    keepPreviousData: true,
+    queryKey: ["adminReservations", page, searchTerm],
+    queryFn: () => adminService.getReservations(page, searchTerm).then((r) => r.data),
+    placeholderData: (previousData) => previousData,
   });
+
+  // Reset to first page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, action }) => adminService.updateReservation(id, action),
@@ -53,6 +60,14 @@ export default function AdminReservationsPage() {
         </div>
       </div>
 
+      <div className="max-w-md">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search by name or CIN..."
+        />
+      </div>
+
       {/* Table */}
       <div className="card overflow-hidden">
         <div className="overflow-x-auto">
@@ -73,8 +88,10 @@ export default function AdminReservationsPage() {
                 Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} cols={6} />)
               ) : reservations.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                    No reservations found.
+                  <td colSpan={6} className="px-4 py-16 text-center">
+                    <SearchX className="h-10 w-10 mx-auto mb-3 text-slate-200" />
+                    <p className="text-slate-400 font-medium">No reservations found matching "{searchTerm}"</p>
+                    <button onClick={() => setSearchTerm("")} className="text-primary-800 text-xs font-bold mt-2">Clear search</button>
                   </td>
                 </tr>
               ) : (

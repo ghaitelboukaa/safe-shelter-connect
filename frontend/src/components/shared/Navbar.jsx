@@ -60,19 +60,22 @@ export function VictimNavbar() {
   const { logout } = useAuth();
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/30">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="flex items-center justify-between h-16">
-          <Link to="/victim/portal" className="flex items-center gap-2">
-            <ShieldAlert className="h-5 w-5 text-primary-800" />
-            <span className="font-bold text-primary-800 text-sm">Safe-Shelter Connect</span>
+    <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-white/30 backdrop-blur-lg">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8">
+        <div className="flex items-center justify-between h-20">
+          <Link to="/victim/portal" className="flex items-center gap-2.5 group">
+            <div className="p-2 bg-primary-50 rounded-lg group-hover:bg-primary-100 transition-colors">
+              <ShieldAlert className="h-5 w-5 text-primary-800" />
+            </div>
+            <span className="font-bold text-primary-800 text-sm tracking-tight italic">Safe-Shelter <span className="text-secondary">Connect</span></span>
           </Link>
+          
           <button
             onClick={logout}
-            className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-danger transition-colors"
+            className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-slate-500 hover:text-danger hover:bg-red-50 rounded-xl transition-all active:scale-95"
           >
             <LogOut className="h-4 w-4" />
-            <span>Logout</span>
+            <span className="hidden sm:inline">Logout</span>
           </button>
         </div>
       </div>

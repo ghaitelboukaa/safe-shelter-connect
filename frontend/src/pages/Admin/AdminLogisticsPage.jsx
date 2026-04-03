@@ -3,15 +3,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   Package, Send, Loader2, ChevronDown, AlertTriangle,
-  BarChart3, RefreshCw, Plus, Database,
+  BarChart3, RefreshCw, Plus, Database, SearchX,
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { zoneService, resourceService } from "../../api/zoneService";
 import { useAuth } from "../../context/AuthContext";
 import { cn } from "../../lib/utils";
+import { SearchInput } from "../../components/shared/SearchInput";
 
 // ── Stock Panel ─────────────────────────────────────────────────────────────
 function StockPanel({ zoneId }) {
+  const [searchTerm, setSearchTerm] = useState("");
   const { data, isLoading, refetch, isFetching } = useQuery({
     queryKey: ["zoneStocks", zoneId],
     queryFn: () => adminService.getZoneStocks(zoneId).then((r) => r.data),
@@ -37,6 +39,17 @@ function StockPanel({ zoneId }) {
         </button>
       </div>
 
+      {data?.stocks?.length > 0 && (
+        <div className="px-5 py-3 border-b border-slate-50 bg-slate-50/30">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Filter stocks..."
+            className="h-9"
+          />
+        </div>
+      )}
+
       {isLoading ? (
         <div className="divide-y divide-slate-50">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -50,8 +63,10 @@ function StockPanel({ zoneId }) {
         <div className="px-5 py-10 text-center text-slate-400 text-sm">No stock recorded.</div>
       ) : (
         <div className="divide-y divide-slate-50">
-          {data?.stocks?.map((s) => (
-            <div key={s.id_ressource} className="flex items-center justify-between px-5 py-3 hover:bg-slate-50 transition-colors">
+          {data.stocks
+            .filter(s => s.type_ressource.toLowerCase().includes(searchTerm.toLowerCase()))
+            .map((s) => (
+            <div key={s.id_ressource} className="flex items-center justify-between px-5 py-3 hover:bg-slate-100 transition-colors">
               <div>
                 <p className="font-medium text-slate-800 text-sm">{s.type_ressource}</p>
                 <p className="text-[10px] text-slate-400 uppercase font-bold">{s.unite_mesure}</p>
@@ -62,6 +77,11 @@ function StockPanel({ zoneId }) {
               </div>
             </div>
           ))}
+          {data.stocks.filter(s => s.type_ressource.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 && (
+            <div className="px-5 py-10 text-center text-slate-400 text-xs italic">
+              No stock matches "{searchTerm}"
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -73,6 +93,7 @@ export default function AdminLogisticsPage() {
   const { isSuperAdmin, user } = useAuth();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("distribute"); // distribute | restock | catalog
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [form, setForm] = useState({
     id_zone: "",
@@ -144,6 +165,7 @@ export default function AdminLogisticsPage() {
   };
 
   const currentZone = zones.find(z => z.id_zone === parseInt(form.id_zone));
+  const filteredResources = resources.filter(r => r.type_ressource.toLowerCase().includes(searchTerm.toLowerCase()));
 
   return (
     <div className="space-y-6 animate-fade-in pb-10">
@@ -244,26 +266,54 @@ export default function AdminLogisticsPage() {
           )}
 
           {activeTab === "catalog" && (
-            <div className="card p-8">
-               <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2"><Database className="h-4 w-4" /> Resource Catalog</h3>
-               <form onSubmit={(e) => { e.preventDefault(); catalogMutation.mutate({ type_ressource: form.type_ressource, unite_mesure: form.unite_mesure }); }} className="space-y-5">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Resource Name</label>
-                      <input value={form.type_ressource} onChange={(e) => setForm({...form, type_ressource: e.target.value})} required className="input-field" placeholder="e.g. Flour" />
+            <div className="space-y-6">
+              <div className="card p-8">
+                <h3 className="font-bold text-slate-900 mb-6 flex items-center gap-2"><Database className="h-4 w-4" /> Resource Catalog</h3>
+                <form onSubmit={(e) => { e.preventDefault(); catalogMutation.mutate({ type_ressource: form.type_ressource, unite_mesure: form.unite_mesure }); }} className="space-y-5">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Resource Name</label>
+                        <input value={form.type_ressource} onChange={(e) => setForm({...form, type_ressource: e.target.value})} required className="input-field" placeholder="e.g. Flour" />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Unit</label>
+                        <select value={form.unite_mesure} onChange={(e) => setForm({...form, unite_mesure: e.target.value})} className="input-field">
+                          <option value="kg">kg</option>
+                          <option value="Litre">Litre</option>
+                          <option value="Box">Box</option>
+                          <option value="Piece">Piece</option>
+                        </select>
+                      </div>
                     </div>
-                    <div>
-                      <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Unit</label>
-                      <select value={form.unite_mesure} onChange={(e) => setForm({...form, unite_mesure: e.target.value})} className="input-field">
-                        <option value="kg">kg</option>
-                        <option value="Litre">Litre</option>
-                        <option value="Box">Box</option>
-                        <option value="Piece">Piece</option>
-                      </select>
-                    </div>
+                    <button type="submit" disabled={catalogMutation.isPending} className="btn-primary w-full py-3">Register Resource</button>
+                </form>
+              </div>
+
+              <div className="card overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h3 className="font-bold text-slate-900 text-sm italic">Existing Resources</h3>
+                  <div className="w-48">
+                    <SearchInput
+                      value={searchTerm}
+                      onChange={setSearchTerm}
+                      placeholder="Search catalog..."
+                      className="h-8"
+                    />
                   </div>
-                  <button type="submit" disabled={catalogMutation.isPending} className="btn-primary w-full py-3">Register Resource</button>
-               </form>
+                </div>
+                <div className="divide-y divide-slate-50 max-h-60 overflow-y-auto">
+                   {filteredResources.length === 0 ? (
+                     <div className="p-8 text-center text-slate-400 text-xs">No matching resources.</div>
+                   ) : (
+                     filteredResources.map(r => (
+                       <div key={r.id_ressource} className="px-5 py-3 flex items-center justify-between hover:bg-slate-50">
+                         <span className="text-sm font-medium text-slate-700">{r.type_ressource}</span>
+                         <span className="text-[10px] font-bold text-slate-400 uppercase">{r.unite_mesure}</span>
+                       </div>
+                     ))
+                   )}
+                </div>
+              </div>
             </div>
           )}
         </div>

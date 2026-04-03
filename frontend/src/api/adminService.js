@@ -5,8 +5,8 @@ export const adminService = {
   getDashboard: () => api.get("/api/v1/admin/dashboard"),
 
   /** GET /api/v1/admin/reservations?page=N */
-  getReservations: (page = 1) =>
-    api.get(`/api/v1/admin/reservations?page=${page}`),
+  getReservations: (page = 1, q = "") =>
+    api.get(`/api/v1/admin/reservations?page=${page}&q=${q}`),
 
   /**
    * PATCH /api/v1/admin/reservations/:id
@@ -48,7 +48,7 @@ export const adminService = {
   createResource: (data) => api.post("/api/v1/admin/resources", data),
 
   /** GET /api/v1/admin/victims */
-  getVictims: (page = 1) => api.get(`/api/v1/admin/victims?page=${page}`),
+  getVictims: (page = 1, q = "") => api.get(`/api/v1/admin/victims?page=${page}&q=${q}`),
 
   /** POST /api/v1/admin/users (Create Admin/Equipe) */
   createUser: (data) => api.post("/api/v1/admin/users", data),

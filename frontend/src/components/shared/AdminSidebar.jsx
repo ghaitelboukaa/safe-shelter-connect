@@ -106,14 +106,13 @@ export function AdminSidebar() {
         {sidebarContent}
       </aside>
 
-      {/* Mobile top bar */}
-      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-14 bg-primary-800 flex items-center px-4 gap-3">
-        <button onClick={() => setMobileOpen(true)} className="text-white p-1">
-          <Menu className="h-5 w-5" />
+      <header className="lg:hidden fixed top-0 left-0 right-0 z-50 h-16 bg-primary-800 flex items-center px-4 gap-3 shadow-sm">
+        <button onClick={() => setMobileOpen(true)} className="p-2 hover:bg-white/10 rounded-xl transition-colors">
+          <Menu className="h-5 w-5 text-white" />
         </button>
         <div className="flex items-center gap-2">
           <ShieldAlert className="h-5 w-5 text-emerald-400" />
-          <span className="font-bold text-white text-sm">Admin Portal</span>
+          <span className="font-bold text-white text-sm tracking-tight text-nowrap">Admin Portal</span>
         </div>
       </header>
 

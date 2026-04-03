@@ -2,10 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  MapPin, Plus, Pencil, Trash2, Loader2, X, Check, Users,
+  MapPin, Plus, Pencil, Trash2, Loader2, X, Check, Users, Navigation, SearchX,
 } from "lucide-react";
 import { zoneService } from "../../api/zoneService";
 import { ProgressBar } from "../../components/ui/ProgressBar";
+import { MapModal } from "../../components/shared/MapModal";
+import { SearchInput } from "../../components/shared/SearchInput";
 
 // ── Zone Form Modal ────────────────────────────────────────────────────────
 function ZoneModal({ zone, onClose, onSave, isSaving }) {
@@ -90,7 +92,9 @@ function ZoneModal({ zone, onClose, onSave, isSaving }) {
 export default function AdminZonesPage() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', zone? }
+  const [mapZone, setMapZone] = useState(null); // null | zone object
   const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const { data, isLoading } = useQuery({
     queryKey: ["adminZones"],
@@ -134,6 +138,10 @@ export default function AdminZonesPage() {
   };
 
   const zones = Array.isArray(data) ? data : [];
+  const filteredZones = zones.filter((z) =>
+    z.nom_zone.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (z.adress_gps && z.adress_gps.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -157,6 +165,15 @@ export default function AdminZonesPage() {
         </button>
       </div>
 
+      {/* Search Bar */}
+      <div className="max-w-md">
+        <SearchInput
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search by zone name or address..."
+        />
+      </div>
+
       {/* Grid */}
       {isLoading ? (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -173,9 +190,15 @@ export default function AdminZonesPage() {
           <MapPin className="h-12 w-12 mx-auto mb-3 text-slate-200" />
           <p className="font-medium">No zones yet. Create the first one!</p>
         </div>
+      ) : filteredZones.length === 0 ? (
+        <div className="card p-16 text-center text-slate-400 border-dashed border-2">
+          <SearchX className="h-12 w-12 mx-auto mb-3 text-slate-200" />
+          <p className="font-medium">No zones match your search "{searchTerm}"</p>
+          <button onClick={() => setSearchTerm("")} className="text-primary-800 text-sm font-bold mt-2">Clear search</button>
+        </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {zones.map((zone) => {
+          {filteredZones.map((zone) => {
             const pct = zone.capacite_max > 0
               ? Math.round(((zone.capacite_max - zone.capacite_restante) / zone.capacite_max) * 100)
               : 0;
@@ -190,6 +213,13 @@ export default function AdminZonesPage() {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => setMapZone(zone)}
+                      className="p-1.5 rounded-lg hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 transition-colors"
+                      title="View on Map"
+                    >
+                      <Navigation className="h-3.5 w-3.5" />
+                    </button>
                     <button
                       onClick={() => setModal({ mode: "edit", zone })}
                       className="p-1.5 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-primary-800 transition-colors"
@@ -237,6 +267,14 @@ export default function AdminZonesPage() {
           isSaving={createMutation.isPending || updateMutation.isPending}
         />
       )}
+
+      {/* Map Modal */}
+      <MapModal
+        isOpen={!!mapZone}
+        onClose={() => setMapZone(null)}
+        address={mapZone?.adress_gps}
+        zoneName={mapZone?.nom_zone}
+      />
     </div>
   );
 }
