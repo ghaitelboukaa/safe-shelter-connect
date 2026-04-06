@@ -92,7 +92,8 @@ function ZoneModal({ zone, onClose, onSave, isSaving }) {
 export default function AdminZonesPage() {
   const queryClient = useQueryClient();
   const [modal, setModal] = useState(null); // null | { mode: 'create' | 'edit', zone? }
-  const [mapZone, setMapZone] = useState(null); // null | zone object
+  const [mapZone, setMapZone] = useState(null);
+  const [confirmDelete, setConfirmDelete] = useState(null); // null | zone object
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -125,6 +126,7 @@ export default function AdminZonesPage() {
       toast.success("Zone deleted.");
       queryClient.invalidateQueries({ queryKey: ["adminZones"] });
       setDeletingId(null);
+      setConfirmDelete(null);
     },
     onError: () => setDeletingId(null),
   });
@@ -212,33 +214,28 @@ export default function AdminZonesPage() {
                       <p className="text-xs text-slate-400 mt-0.5 truncate">{zone.adress_gps}</p>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex items-center gap-1.5 ml-2 shrink-0">
                     <button
                       onClick={() => setMapZone(zone)}
-                      className="p-1.5 rounded-lg hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-50 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 transition-colors"
                       title="View on Map"
                     >
                       <Navigation className="h-3.5 w-3.5" />
                     </button>
                     <button
                       onClick={() => setModal({ mode: "edit", zone })}
-                      className="p-1.5 rounded-lg hover:bg-blue-100 text-slate-400 hover:text-primary-800 transition-colors"
+                      className="p-1.5 rounded-lg bg-slate-50 hover:bg-blue-100 text-slate-400 hover:text-primary-800 transition-colors"
+                      title="Edit Zone"
                     >
                       <Pencil className="h-3.5 w-3.5" />
                     </button>
                     <button
-                      onClick={() => {
-                        setDeletingId(zone.id_zone);
-                        deleteMutation.mutate(zone.id_zone);
-                      }}
+                      onClick={() => setConfirmDelete(zone)}
                       disabled={deletingId === zone.id_zone}
-                      className="p-1.5 rounded-lg hover:bg-red-100 text-slate-400 hover:text-danger transition-colors disabled:opacity-50"
+                      className="p-1.5 rounded-lg bg-slate-50 hover:bg-red-100 text-slate-400 hover:text-danger transition-colors disabled:opacity-50"
+                      title="Delete Zone"
                     >
-                      {deletingId === zone.id_zone ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 </div>
@@ -258,7 +255,7 @@ export default function AdminZonesPage() {
         </div>
       )}
 
-      {/* Modal */}
+      {/* Zone Create/Edit Modal */}
       {modal && (
         <ZoneModal
           zone={modal.zone}
@@ -266,6 +263,45 @@ export default function AdminZonesPage() {
           onSave={handleSave}
           isSaving={createMutation.isPending || updateMutation.isPending}
         />
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-red-100 rounded-2xl">
+                <Trash2 className="h-5 w-5 text-red-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-slate-900">Delete Zone?</h3>
+                <p className="text-slate-500 text-sm">This action cannot be undone.</p>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 bg-slate-50 rounded-2xl p-4">
+              You are about to permanently delete <strong>{confirmDelete.nom_zone}</strong> and all its associated data.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="btn-outline flex-1 py-2.5 text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setDeletingId(confirmDelete.id_zone);
+                  deleteMutation.mutate(confirmDelete.id_zone);
+                }}
+                disabled={deleteMutation.isPending}
+                className="flex-1 py-2.5 text-sm inline-flex items-center justify-center gap-2 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50"
+              >
+                {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Map Modal */}

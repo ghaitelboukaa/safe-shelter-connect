@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -92,11 +92,14 @@ function StockPanel({ zoneId }) {
 export default function AdminLogisticsPage() {
   const { isSuperAdmin, user } = useAuth();
   const queryClient = useQueryClient();
-  const [activeTab, setActiveTab] = useState("distribute"); // distribute | restock | catalog
+  const [activeTab, setActiveTab] = useState("distribute");
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Auto-select zone for zone-scoped admins
+  const defaultZoneId = !isSuperAdmin && user?.id_zone ? String(user.id_zone) : "";
+
   const [form, setForm] = useState({
-    id_zone: "",
+    id_zone: defaultZoneId,
     id_ressource: "",
     id_sinistre: "",
     quantite: "",
@@ -116,6 +119,13 @@ export default function AdminLogisticsPage() {
 
   const zones = Array.isArray(zonesData) ? zonesData : [];
   const resources = resourcesData?.resources ?? [];
+
+  // Once zones load, auto-select the zone admin's zone and trigger stock display
+  useEffect(() => {
+    if (!isSuperAdmin && user?.id_zone && zones.length > 0) {
+      setForm(prev => ({ ...prev, id_zone: String(user.id_zone) }));
+    }
+  }, [zones.length, isSuperAdmin, user?.id_zone]);
 
   // Mutations
   const distributeMutation = useMutation({
@@ -207,11 +217,23 @@ export default function AdminLogisticsPage() {
               <form onSubmit={handleDistribute} className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Zone</label>
-                    <select value={form.id_zone} onChange={(e) => setForm({...form, id_zone: e.target.value})} required className="input-field">
-                      <option value="">Select Zone</option>
-                      {zones.map(z => <option key={z.id_zone} value={z.id_zone}>{z.nom_zone}</option>)}
-                    </select>
+                     <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Zone</label>
+                     {!isSuperAdmin ? (
+                       <div className="input-field bg-slate-50 text-slate-700 font-medium flex items-center gap-2">
+                         <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                         {zones.find(z => String(z.id_zone) === String(form.id_zone))?.nom_zone || "Loading..."}
+                       </div>
+                     ) : (
+                       <select
+                         value={form.id_zone}
+                         onChange={(e) => setForm({...form, id_zone: e.target.value})}
+                         required
+                         className="input-field"
+                       >
+                         <option value="">Select Zone</option>
+                         {zones.map(z => <option key={z.id_zone} value={z.id_zone}>{z.nom_zone}</option>)}
+                       </select>
+                     )}
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Resource Type</label>
@@ -243,10 +265,22 @@ export default function AdminLogisticsPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Zone</label>
-                      <select value={form.id_zone} onChange={(e) => setForm({...form, id_zone: e.target.value})} required className="input-field">
-                        <option value="">Select Zone</option>
-                        {zones.map(z => <option key={z.id_zone} value={z.id_zone}>{z.nom_zone}</option>)}
-                      </select>
+                      {!isSuperAdmin ? (
+                        <div className="input-field bg-slate-50 text-slate-700 font-medium flex items-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 shrink-0" />
+                          {zones.find(z => String(z.id_zone) === String(form.id_zone))?.nom_zone || "Loading..."}
+                        </div>
+                      ) : (
+                        <select
+                          value={form.id_zone}
+                          onChange={(e) => setForm({...form, id_zone: e.target.value})}
+                          required
+                          className="input-field"
+                        >
+                          <option value="">Select Zone</option>
+                          {zones.map(z => <option key={z.id_zone} value={z.id_zone}>{z.nom_zone}</option>)}
+                        </select>
+                      )}
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-slate-400 uppercase mb-2">Resource Type</label>

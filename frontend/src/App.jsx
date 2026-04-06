@@ -19,6 +19,7 @@ import { AdminLayout } from "./components/shared/AdminLayout";
 import HomePage from "./pages/Home/HomePage";
 import LoginPage from "./pages/Auth/LoginPage";
 import RegisterPage from "./pages/Auth/RegisterPage";
+import PublicZonesPage from "./pages/Public/PublicZonesPage";
 import VictimDashboardPage from "./pages/Victim/VictimDashboardPage";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import AdminReservationsPage from "./pages/Admin/AdminReservationsPage";
@@ -48,10 +49,11 @@ export default function App() {
         {/* ── Public routes ─────────────────────────────────────── */}
         <Route element={<PublicLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/zones" element={<PublicZonesPage />} />
         </Route>
 
         <Route element={<GuestRoute />}>
-          <Route path="/login"    element={<LoginPage />} />
+          <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
         </Route>
 
@@ -65,16 +67,16 @@ export default function App() {
         {/* ── Admin portal (Shared) ─────────────────────────────── */}
         <Route element={<AdminRoute />}>
           <Route element={<AdminLayout />}>
-            <Route path="/admin/dashboard"    element={<AdminDashboardPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
             <Route path="/admin/reservations" element={<AdminReservationsPage />} />
-            <Route path="/admin/logistics"    element={<AdminLogisticsPage />} />
-            <Route path="/admin/teams"        element={<TeamManagementPage />} />
-            <Route path="/admin/victims"      element={<VictimDirectoryPage />} />
-            
+            <Route path="/admin/logistics" element={<AdminLogisticsPage />} />
+            <Route path="/admin/teams" element={<TeamManagementPage />} />
+            <Route path="/admin/victims" element={<VictimDirectoryPage />} />
+
             {/* ── Super Admin Only ─────────────────────────────── */}
             <Route element={<SuperAdminRoute />}>
-               <Route path="/admin/zones" element={<AdminZonesPage />} />
-               <Route path="/admin/users" element={<AdminUserManager />} />
+              <Route path="/admin/zones" element={<AdminZonesPage />} />
+              <Route path="/admin/users" element={<AdminUserManager />} />
             </Route>
           </Route>
         </Route>

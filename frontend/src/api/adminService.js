@@ -52,4 +52,7 @@ export const adminService = {
 
   /** POST /api/v1/admin/users (Create Admin/Equipe) */
   createUser: (data) => api.post("/api/v1/admin/users", data),
+
+  /** GET /api/v1/admin/users (Super Admin only) */
+  getUsers: () => api.get("/api/v1/admin/users"),
 };

@@ -2,16 +2,19 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
-  Users, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Loader2, SearchX,
+  Users, CheckCircle2, XCircle, ChevronLeft, ChevronRight, Loader2, SearchX, Clock,
 } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { Badge } from "../../components/ui/Badge";
 import { SkeletonRow } from "../../components/ui/Skeleton";
 import { SearchInput } from "../../components/shared/SearchInput";
 
+const STATUS_FILTERS = ["All", "Pending", "Confirmed", "Rejected"];
+
 export default function AdminReservationsPage() {
   const [page, setPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
   const [loadingId, setLoadingId] = useState(null);
   const queryClient = useQueryClient();
 
@@ -19,12 +22,10 @@ export default function AdminReservationsPage() {
     queryKey: ["adminReservations", page, searchTerm],
     queryFn: () => adminService.getReservations(page, searchTerm).then((r) => r.data),
     placeholderData: (previousData) => previousData,
+    refetchInterval: 30_000, // real-time polling every 30s
   });
 
-  // Reset to first page when search changes
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm]);
+  useEffect(() => { setPage(1); }, [searchTerm, statusFilter]);
 
   const updateMutation = useMutation({
     mutationFn: ({ id, action }) => adminService.updateReservation(id, action),
@@ -42,8 +43,18 @@ export default function AdminReservationsPage() {
     updateMutation.mutate({ id, action });
   };
 
-  const reservations = data?.reservations ?? [];
+  const allReservations = data?.reservations ?? [];
+  const reservations = statusFilter === "All"
+    ? allReservations
+    : allReservations.filter((r) => r.statut === statusFilter);
+
   const totalPages = data ? Math.ceil(data.total / 10) : 1;
+
+  // Count per status for tab badges
+  const counts = allReservations.reduce((acc, r) => {
+    acc[r.statut] = (acc[r.statut] || 0) + 1;
+    return acc;
+  }, {});
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -60,12 +71,44 @@ export default function AdminReservationsPage() {
         </div>
       </div>
 
-      <div className="max-w-md">
-        <SearchInput
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search by name or CIN..."
-        />
+      {/* Search + Filter tabs row */}
+      <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+        <div className="w-full sm:w-72">
+          <SearchInput
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search by name or CIN..."
+          />
+        </div>
+
+        {/* Status filter pill tabs */}
+        <div className="flex gap-1 bg-slate-100 p-1 rounded-2xl flex-wrap">
+          {STATUS_FILTERS.map((s) => (
+            <button
+              key={s}
+              onClick={() => setStatusFilter(s)}
+              className={`px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wide transition-all flex items-center gap-1.5 ${
+                statusFilter === s
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-400 hover:text-slate-600"
+              }`}
+            >
+              {s === "Pending" && <Clock className="h-3 w-3" />}
+              {s === "Confirmed" && <CheckCircle2 className="h-3 w-3 text-emerald-500" />}
+              {s === "Rejected" && <XCircle className="h-3 w-3 text-red-500" />}
+              {s}
+              {s !== "All" && counts[s] > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-black leading-none ${
+                  s === "Pending" ? "bg-amber-100 text-amber-700" :
+                  s === "Confirmed" ? "bg-emerald-100 text-emerald-700" :
+                  "bg-red-100 text-red-700"
+                }`}>
+                  {counts[s]}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Table */}
@@ -90,8 +133,16 @@ export default function AdminReservationsPage() {
                 <tr>
                   <td colSpan={6} className="px-4 py-16 text-center">
                     <SearchX className="h-10 w-10 mx-auto mb-3 text-slate-200" />
-                    <p className="text-slate-400 font-medium">No reservations found matching "{searchTerm}"</p>
-                    <button onClick={() => setSearchTerm("")} className="text-primary-800 text-xs font-bold mt-2">Clear search</button>
+                    <p className="text-slate-400 font-medium">
+                      {statusFilter !== "All"
+                        ? `No ${statusFilter} reservations found`
+                        : `No reservations matching "${searchTerm}"`}
+                    </p>
+                    {statusFilter !== "All" && (
+                      <button onClick={() => setStatusFilter("All")} className="text-primary-800 text-xs font-bold mt-2">
+                        Show all
+                      </button>
+                    )}
                   </td>
                 </tr>
               ) : (
@@ -100,23 +151,12 @@ export default function AdminReservationsPage() {
                   const isRejectLoading  = loadingId === `${r.id_sinistre}-Rejected`;
 
                   return (
-                    <tr
-                      key={r.id_sinistre}
-                      className="hover:bg-slate-50 transition-colors group"
-                    >
-                      <td className="px-4 py-3 font-medium text-slate-900">
-                        {r.nom_complet}
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 font-mono text-xs">
-                        {r.cin || "—"}
-                      </td>
+                    <tr key={r.id_sinistre} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-4 py-3 font-medium text-slate-900">{r.nom_complet}</td>
+                      <td className="px-4 py-3 text-slate-500 font-mono text-xs">{r.cin || "—"}</td>
                       <td className="px-4 py-3 text-slate-700">{r.zone || "—"}</td>
-                      <td className="px-4 py-3 text-slate-700 font-mono">
-                        {r.point_attribue || "—"}
-                      </td>
-                      <td className="px-4 py-3">
-                        <Badge status={r.statut} />
-                      </td>
+                      <td className="px-4 py-3 text-slate-700 font-mono">{r.point_attribue || "—"}</td>
+                      <td className="px-4 py-3"><Badge status={r.statut} /></td>
                       <td className="px-4 py-3">
                         {r.statut === "Pending" ? (
                           <div className="flex items-center gap-2">
@@ -126,25 +166,16 @@ export default function AdminReservationsPage() {
                               disabled={!!loadingId}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {isConfirmLoading ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <CheckCircle2 className="h-3.5 w-3.5" />
-                              )}
+                              {isConfirmLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
                               Confirm
                             </button>
-
                             <button
                               id={`reject-${r.id_sinistre}`}
                               onClick={() => handleAction(r.id_sinistre, "Rejected")}
                               disabled={!!loadingId}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-xs font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                              {isRejectLoading ? (
-                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                              ) : (
-                                <XCircle className="h-3.5 w-3.5" />
-                              )}
+                              {isRejectLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <XCircle className="h-3.5 w-3.5" />}
                               Reject
                             </button>
                           </div>

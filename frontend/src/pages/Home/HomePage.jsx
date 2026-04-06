@@ -13,9 +13,9 @@ import {
 // Static stats (would be fetched from dashboard in a real scenario)
 const STATS = [
   { value: "2,400+", label: "Families Helped" },
-  { value: "18",     label: "Active Zones" },
-  { value: "96%",    label: "Request Approval Rate" },
-  { value: "24/7",   label: "Operational" },
+  { value: "18", label: "Active Zones" },
+  { value: "96%", label: "Request Approval Rate" },
+  { value: "24/7", label: "Operational" },
 ];
 
 const FEATURES = [
@@ -46,9 +46,9 @@ const FEATURES = [
 ];
 
 const HOW_IT_WORKS = [
-  { step: "1", title: "Register", desc: "Create an account with your name, email, and CIN." },
-  { step: "2", title: "Request a Spot", desc: "Browse available zones and submit a shelter request." },
-  { step: "3", title: "Get Confirmed", desc: "Admin reviews and confirms your spot. Track status in your portal." },
+  { step: "1", title: "Browse Zones", desc: "Explore all available shelter zones and their live capacity — no account needed." },
+  { step: "2", title: "Create Account", desc: "Register with your name, email, and CIN to unlock the ability to request a spot." },
+  { step: "3", title: "Request & Get Confirmed", desc: "Submit your shelter request. Admin reviews and confirms your spot quickly." },
 ];
 
 export default function HomePage() {
@@ -82,7 +82,7 @@ export default function HomePage() {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
-                to="/register"
+                to="/zones"
                 id="cta-need-shelter"
                 className="inline-flex items-center justify-center gap-2.5 px-8 py-4 bg-white text-primary-800 font-bold rounded-2xl hover:bg-blue-50 transition-all duration-200 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-base"
               >
@@ -175,10 +175,12 @@ export default function HomePage() {
             Register now and get assigned to a safe shelter zone in minutes.
           </p>
           <Link
-            to="/register"
+            to="/zones"
+            id="cta-bottom-zones"
             className="inline-flex items-center gap-2 px-8 py-4 bg-white text-primary-800 font-bold rounded-2xl hover:bg-blue-50 transition-colors shadow-lg text-base"
           >
-            Get Started Free
+            <MapPin className="h-5 w-5" />
+            View Shelter Zones
             <ArrowRight className="h-5 w-5" />
           </Link>
         </div>

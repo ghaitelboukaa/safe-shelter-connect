@@ -137,7 +137,8 @@ def login():
         return jsonify({
             "message": "Login successful!",
             "access_token": access_token,
-            "role": user.role
+            "role": user.role,
+            "id_zone": user.id_zone
         }), 200
     
     else:
@@ -791,6 +792,25 @@ def create_admin_user():
     
     zone_msg = f" linked to zone {id_zone}" if id_zone else ""
     return jsonify({"message": f"User with role {role}{zone_msg} created"}), 201
+
+@app.route('/api/v1/admin/users', methods=['GET'])
+@super_admin_required
+def list_admin_users():
+    admins = User.query.filter(User.role.in_(['admin', 'super_admin'])).all()
+    result = []
+    for u in admins:
+        zone_name = None
+        if u.id_zone:
+            zone = ZoneRegroupement.query.get(u.id_zone)
+            zone_name = zone.nom_zone if zone else None
+        result.append({
+            "id_user": u.id_user,
+            "email": u.email,
+            "role": u.role,
+            "id_zone": u.id_zone,
+            "zone_name": zone_name
+        })
+    return jsonify({"users": result, "total": len(result)}), 200
 
 @app.route('/api/v1/admin/victims', methods=['GET'])
 @admin_required

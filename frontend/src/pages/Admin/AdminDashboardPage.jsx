@@ -124,6 +124,14 @@ export default function AdminDashboardPage() {
         {/* Status Distribution Donut */}
         <div className="lg:col-span-5 xl:col-span-4 card p-6 flex flex-col items-center">
            <h3 className="font-bold text-slate-800 self-start mb-6">Status Breakdown</h3>
+           {(data?.pending ?? 0) + (data?.confirmed ?? 0) === 0 ? (
+             <div className="flex flex-col items-center justify-center h-[250px] text-slate-400 gap-3">
+               <div className="w-20 h-20 rounded-full border-4 border-dashed border-slate-200 flex items-center justify-center">
+                 <CheckCircle2 className="h-8 w-8 text-slate-200" />
+               </div>
+               <p className="text-sm font-medium">No reservations yet</p>
+             </div>
+           ) : (
            <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                 <PieChart>
@@ -145,6 +153,7 @@ export default function AdminDashboardPage() {
                 </PieChart>
               </ResponsiveContainer>
            </div>
+           )}
         </div>
 
         {/* Global Zone Usage Bar (For Super Admin) */}

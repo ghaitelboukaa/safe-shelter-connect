@@ -3,6 +3,7 @@ import { Users, ChevronLeft, ChevronRight, SearchX } from "lucide-react";
 import { adminService } from "../../api/adminService";
 import { useState, useEffect } from "react";
 import { SearchInput } from "../../components/shared/SearchInput";
+import { Badge } from "../../components/ui/Badge";
 
 export default function VictimDirectoryPage() {
   const [page, setPage] = useState(1);
@@ -13,10 +14,9 @@ export default function VictimDirectoryPage() {
     queryFn: () => adminService.getVictims(page, searchTerm).then((r) => r.data),
   });
 
-  // Reset page when search changes
-  useEffect(() => {
-    setPage(1);
-  }, [searchTerm]);
+  useEffect(() => { setPage(1); }, [searchTerm]);
+
+  const totalPages = Math.ceil((data?.total || 0) / 10);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -71,25 +71,34 @@ export default function VictimDirectoryPage() {
                   <td className="px-6 py-4 text-slate-500 font-mono text-xs">{v.cin}</td>
                   <td className="px-6 py-4 text-slate-500 text-sm">{v.email}</td>
                   <td className="px-6 py-4">
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider
-                      ${v.statut_reservation === "Confirmed" ? "bg-emerald-100 text-emerald-700" : 
-                        v.statut_reservation === "Pending" ? "bg-amber-100 text-amber-700" : "bg-slate-100 text-slate-500"}`}
-                    >
-                      {v.statut_reservation}
-                    </span>
+                    <Badge status={v.statut_reservation || "—"} />
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-          
+
           {/* Pagination */}
           <div className="px-6 py-4 flex items-center justify-between border-t border-slate-100">
-             <p className="text-xs text-slate-400 font-medium">Page {page} of {Math.ceil((data?.total || 0) / 10)}</p>
-             <div className="flex gap-2">
-                <button onClick={() => setPage(p => Math.max(1, p - 1))} className="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600"><ChevronLeft className="h-4 w-4" /></button>
-                <button onClick={() => setPage(p => p + 1)} disabled={page >= Math.ceil((data?.total || 0) / 10)} className="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600"><ChevronRight className="h-4 w-4" /></button>
-             </div>
+            <p className="text-xs text-slate-400 font-medium">
+              Page {page} of {totalPages || 1} · {data?.total ?? 0} total
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                className="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages}
+                className="p-1 px-3 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         </div>
       </div>

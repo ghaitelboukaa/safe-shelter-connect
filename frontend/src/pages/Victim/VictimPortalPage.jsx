@@ -16,8 +16,8 @@ function ShelterTicket({ reservation, onCancel, isCancelling }) {
 
   const statusIcon = {
     Confirmed: <CheckCircle2 className="h-5 w-5 text-secondary" />,
-    Pending:   <Clock className="h-5 w-5 text-warning" />,
-    Rejected:  <XCircle className="h-5 w-5 text-danger" />,
+    Pending: <Clock className="h-5 w-5 text-warning" />,
+    Rejected: <XCircle className="h-5 w-5 text-danger" />,
   }[statut_reservation];
 
   return (
@@ -170,9 +170,8 @@ function ZoneGrid({ onBook }) {
                     </div>
                     <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${
-                          pct > 80 ? "bg-red-500" : pct > 50 ? "bg-amber-400" : "bg-emerald-500"
-                        }`}
+                        className={`h-full rounded-full transition-all duration-700 ${pct > 80 ? "bg-red-500" : pct > 50 ? "bg-amber-400" : "bg-emerald-500"
+                          }`}
                         style={{ width: `${pct}%` }}
                       />
                     </div>
@@ -183,11 +182,10 @@ function ZoneGrid({ onBook }) {
                   id={`request-zone-${zone.id_zone}`}
                   onClick={() => !isFull && onBook(zone.id_zone)}
                   disabled={isFull}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                    isFull
+                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isFull
                       ? "bg-slate-100 text-slate-400 cursor-not-allowed"
                       : "bg-primary-800 text-white hover:bg-primary-900 active:scale-95"
-                  }`}
+                    }`}
                 >
                   {isFull ? "Full" : "Request Spot"}
                 </button>

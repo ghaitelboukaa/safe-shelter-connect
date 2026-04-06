@@ -145,7 +145,7 @@ export default function VictimDashboardPage() {
                   />
                 </div>
               </div>
-              
+
               {filteredZones.length === 0 && available_zones?.length > 0 ? (
                 <div className="card p-12 text-center text-slate-400 border-dashed border-2">
                   <SearchX className="h-10 w-10 mx-auto mb-3 text-slate-200" />
@@ -155,50 +155,50 @@ export default function VictimDashboardPage() {
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {filteredZones.map((z) => (
-                  <div key={z.id_zone} className="card p-5 group hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-100">
-                    <div className="flex justify-between mb-4">
-                      <div>
-                        <p className="font-bold text-slate-900 group-hover:text-primary-800 transition-colors uppercase tracking-wide text-sm">{z.nom_zone}</p>
-                        <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><MapPin className="h-3 w-3" /> Available Near You</p>
+                    <div key={z.id_zone} className="card p-5 group hover:shadow-xl transition-all duration-300 border border-slate-100 hover:border-blue-100">
+                      <div className="flex justify-between mb-4">
+                        <div>
+                          <p className="font-bold text-slate-900 group-hover:text-primary-800 transition-colors uppercase tracking-wide text-sm">{z.nom_zone}</p>
+                          <p className="text-xs text-slate-400 mt-1 flex items-center gap-1"><MapPin className="h-3 w-3" /> Available Near You</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setMapZone(z)}
+                            className="p-3 bg-slate-50 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 rounded-2xl transition-all duration-300"
+                            title="View on Map"
+                          >
+                            <MapPin className="h-5 w-5" />
+                          </button>
+                          <button
+                            id={`book-zone-${z.id_zone}`}
+                            onClick={() => bookMutation.mutate(z.id_zone)}
+                            disabled={z.capacite_restante <= 0 || bookMutation.isPending}
+                            className="p-3 bg-slate-50 group-hover:bg-primary-800 text-slate-400 group-hover:text-white rounded-2xl transition-all duration-300"
+                            title="Request Spot"
+                          >
+                            <Navigation className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setMapZone(z)}
-                          className="p-3 bg-slate-50 hover:bg-emerald-100 text-slate-400 hover:text-emerald-600 rounded-2xl transition-all duration-300"
-                          title="View on Map"
-                        >
-                          <MapPin className="h-5 w-5" />
-                        </button>
-                        <button
-                          id={`book-zone-${z.id_zone}`}
-                          onClick={() => bookMutation.mutate(z.id_zone)}
-                          disabled={z.capacite_restante <= 0 || bookMutation.isPending}
-                          className="p-3 bg-slate-50 group-hover:bg-primary-800 text-slate-400 group-hover:text-white rounded-2xl transition-all duration-300"
-                          title="Request Spot"
-                        >
-                          <Navigation className="h-5 w-5" />
-                        </button>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                          <span>{z.capacite_restante} spots remaining</span>
+                          <span>{z.pct_full}% full</span>
+                        </div>
+                        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${z.pct_full > 80 ? "bg-red-500" : z.pct_full > 50 ? "bg-amber-400" : "bg-emerald-500"}`}
+                            style={{ width: `${z.pct_full}%` }}
+                          />
+                        </div>
                       </div>
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-bold text-slate-600 mb-1">
-                        <span>{z.capacite_restante} spots remaining</span>
-                        <span>{z.pct_full}% full</span>
-                      </div>
-                      <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${z.pct_full > 80 ? "bg-red-500" : z.pct_full > 50 ? "bg-amber-400" : "bg-emerald-500"}`}
-                          style={{ width: `${z.pct_full}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* ── Side Section (Utility Cards) ────────────────────────── */}
         <div className="lg:col-span-12 xl:col-span-4 space-y-6">
@@ -219,14 +219,17 @@ export default function VictimDashboardPage() {
             <div className="h-px bg-slate-100" />
 
             <div className="space-y-4">
-              <div className="flex items-center justify-between group cursor-pointer">
+              <div className="flex items-center justify-between group">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-blue-50 transition-colors">
-                    <TrendingDown className="h-4 w-4 text-slate-400 group-hover:text-blue-600" />
+                  <div className="p-2 bg-emerald-50 rounded-lg">
+                    <TrendingDown className="h-4 w-4 text-emerald-600" />
                   </div>
-                  <span className="text-slate-600 font-medium text-sm group-hover:text-blue-700 transition-colors">Request Supplies</span>
+                  <div>
+                    <span className="text-slate-700 font-medium text-sm">Need supplies?</span>
+                    <p className="text-xs text-slate-400 mt-0.5">Ask your zone admin directly</p>
+                  </div>
                 </div>
-                <span className="text-xs bg-slate-50 px-2 py-0.5 rounded text-slate-400">Soon</span>
+                <span className="text-xs bg-emerald-50 text-emerald-600 font-bold px-2 py-1 rounded-lg">At Zone</span>
               </div>
             </div>
           </div>
