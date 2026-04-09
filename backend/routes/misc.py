@@ -33,6 +33,7 @@ def update_profile():
     db.session.commit()
     return jsonify({"message": "Profile updated"}), 200
 
+# Route de test pour voir si le token marche
 @misc_bp.route('/profile', methods=['GET'])
 @jwt_required()
 def get_profile():
@@ -51,6 +52,7 @@ def global_search():
     
     results = []
 
+    # 1. Search Zones (Available to all)
     zones = ZoneRegroupement.query.filter(ZoneRegroupement.nom_zone.ilike(f'%{query}%')).all()
     for z in zones:
         results.append({
@@ -61,7 +63,9 @@ def global_search():
             "link": "/admin/zones" if user.role in ['admin', 'super_admin'] else "/victim/portal"
         })
 
+    # 2. Search Restricted Entities (Admin/Equipe only)
     if user.role in ['admin', 'super_admin', 'equipe']:
+        # Victims
         victims = Sinistre.query.filter(
             (Sinistre.nom.ilike(f'%{query}%')) | 
             (Sinistre.prenom.ilike(f'%{query}%')) | 
@@ -76,6 +80,7 @@ def global_search():
                 "link": "/admin/victims"
             })
 
+        # Teams
         teams = Equipe.query.filter(Equipe.role.ilike(f'%{query}%')).all()
         for t in teams:
             results.append({
@@ -86,6 +91,7 @@ def global_search():
                 "link": "/admin/teams"
             })
 
+        # Logistics
         resources = Ressource.query.filter(Ressource.type_ressource.ilike(f'%{query}%')).all()
         for r in resources:
             results.append({
@@ -96,6 +102,7 @@ def global_search():
                 "link": "/admin/logistics"
             })
 
+        # Missions
         missions = Mission.query.filter(
             (Mission.titre.ilike(f'%{query}%')) | 
             (Mission.description.ilike(f'%{query}%'))

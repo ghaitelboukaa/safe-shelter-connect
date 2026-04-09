@@ -10,11 +10,13 @@ from routes.reservations import reservations_bp
 from routes.victim import victim_bp
 from routes.misc import misc_bp
 
+# Chargement des variables d'environnement
 load_dotenv()
 
 app = Flask(__name__)
 cors.init_app(app)
 
+# Configuration MySQL mn .env
 db_user = os.getenv('DB_USER')
 db_password = os.getenv('DB_PASSWORD')
 db_host = os.getenv('DB_HOST')
@@ -27,6 +29,7 @@ app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY')
 db.init_app(app)
 jwt.init_app(app)
 
+# --- ROUTES AUTHENTICATION ---
 @app.route('/')
 def home():
     return "Bienvenue dans le système de gestion des sinistres!"

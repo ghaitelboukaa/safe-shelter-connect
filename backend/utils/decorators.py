@@ -21,10 +21,14 @@ def super_admin_required(fn):
 def admin_required(fn):
     @wraps(fn)
     def wrapper(*args, **kwargs):
+        # 1. Verify token
         verify_jwt_in_request()
+        # 2. Get current user ID mn l-token
         user_id = get_jwt_identity()
+        # 3. Qallab 3la l-user f MySQL
         user = User.query.get(user_id)
         
+        # 4. Check role (Super Admin can do anything an Admin can)
         if not user or user.role not in ['admin', 'super_admin']:
             return jsonify({
                 "error": "forbidden",

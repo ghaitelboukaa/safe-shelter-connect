@@ -13,6 +13,7 @@ def list_all_reservations():
     page = request.args.get('page', 1, type=int)
     search_query = request.args.get('q', '').strip()
     
+    # Security check: if standard admin, filter by their assigned zone
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     
@@ -60,10 +61,11 @@ def list_all_reservations():
 @admin_required
 def update_reservation_status(id):
     data = request.get_json()
-    action = data.get('action')
+    action = data.get('action') # Kat-tsnna 'confirm' awla 'reject'
     
     sinistre = Sinistre.query.get_or_404(id)
 
+    # Security check: if standard admin, ensure reservation is in their zone
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if user.role == 'admin':
@@ -77,8 +79,11 @@ def update_reservation_status(id):
     id_zone_for_Procedure = None
     response_data = {}
     
+    # L-Admin Wafeq
     if action == 'Confirmed':
         sinistre.statut_reservation = 'Confirmed'
+
+        # N-jibou l-id_zone bach n-siftoha l-Procedure mn ba3d
         point = PointAffectation.query.get(sinistre.id_point)
         if point:
             id_zone_for_Procedure = point.id_zone if point else None
@@ -89,18 +94,27 @@ def update_reservation_status(id):
             "statut": "Confirmed"
         }
 
+    # L-Admin Rfed
     elif action == 'Rejected':
         point = PointAffectation.query.get(sinistre.id_point)
         if point:
+            # L-blassa trje3 khawya
             point.statut = 'Libre'
-            id_zone_for_Procedure = point.id_zone 
+            id_zone_for_Procedure = point.id_zone # Hna n-jibou l-id_zone bach n-siftoha l-Procedure mn ba3d
             
+            # L-capacite dyal l-zone t-zad (+1) wlakin rah daba drna Procedure ghadi itklf b lhsab
+            #zone = ZoneRegroupement.query.get(point.id_zone)
+            #if zone:
+            #    zone.capacite_restante += 1
+            
+        # N-m7iw l-lien m3a l-victime
         sinistre.id_point = None
         sinistre.statut_reservation = 'Rejected'
         response_data = {"message": "Reservation rejected, the place has been released"}
     else:
         return jsonify({"error": "bad_request", "message": "Action must be 'Confirmed' or 'Rejected'"}), 400
     
+    #  4. HNA FIN KAN-ZIDOU L-APPEL DYAL PROCEDURE BASH N-REFRESHIW L-CAPACITE O LA LISTE DYAL POINTS F KOL ZONE
     if id_zone_for_Procedure:
         sql_call = text("CALL sp_refresh_capacity(:z)")
         db.session.execute(sql_call, {'z': id_zone_for_Procedure})
@@ -113,19 +127,23 @@ def update_reservation_status(id):
 def record_distribution():
     data = request.get_json()
     
+    # N-jibou les IDs li m-connectyin b l-association ternaire
     id_zone = data.get('id_zone')
     id_ressource = data.get('id_ressource')
     id_sinistre = data.get('id_sinistre')
     quantite_donnee = data.get('quantite_donnee')
-    unite = data.get('unite_mesure', 'Unit')
+    unite = data.get('unite_mesure', 'Unit') # Par défaut kg ila masiftouhach
 
+    # 1. Virifier wax kayn had l-stock f table 'Stocker'
     stock = Stocker.query.filter_by(id_zone=id_zone, id_ressource=id_ressource).first()
     
+    # Security check: if standard admin, must be their zone
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if user.role == 'admin' and int(id_zone) != user.id_zone:
         return jsonify({"error": "forbidden", "message": "You can only distribute in yourassigned zone"}), 403
 
+    # 2. Error 422 (Insufficient Stock) kima 3ndk f l-lista 5.6
     if not stock or stock.quantite_disponible < quantite_donnee:
         return jsonify({
             "error": "insufficient_stock",
@@ -133,6 +151,10 @@ def record_distribution():
             "status": 422
         }), 422
 
+    # 3. Mantiq 1: N-nqso l-Stock
+    # stock.quantite_disponible -= quantite_donnee
+
+    # 4. Mantiq 2: N-creerw traçabilité f table 'Distribuer'
     nouvelle_distribution = Distribuer(
         id_zone=id_zone,
         id_ressource=id_ressource,
@@ -141,6 +163,8 @@ def record_distribution():
         unite_mesure=unite
     )
     db.session.add(nouvelle_distribution)
+    
+    # 5. Valider kolchi f MySQL
     db.session.commit()
 
     return jsonify({
@@ -148,13 +172,16 @@ def record_distribution():
         "stock_remaining": stock.quantite_disponible
     }), 200
 
+# Partie 5.5: Summary stats for admin dashboard
 @admin_bp.route('/dashboard', methods=['GET'])
 @admin_required
 def get_dashboard_summary():
+    # Aggregated stats logic
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     
     if user.role == 'admin':
+        # Scoped dashboard for specific zone
         if not user.id_zone:
              return jsonify({"error": "unauthorized", "message": "Admin not assigned to any zone"}), 403
         
@@ -183,26 +210,31 @@ def get_dashboard_summary():
             "critical_stock": critical_stock
         }), 200
 
+    # 1. Total Zones (For Super Admin)
     total_zones = ZoneRegroupement.query.count()
     
+    # ... rest of the logic remains for Super Admin ...
     total_reservations = Sinistre.query.filter(Sinistre.statut_reservation != 'None').count()
     pending = Sinistre.query.filter_by(statut_reservation='Pending').count()
     confirmed = Sinistre.query.filter_by(statut_reservation='Confirmed').count()
     
+    # 3. I7sa2iyat dyal Kol Zone (Boucle)
     zones_data = []
     zones = ZoneRegroupement.query.all()
     
     for z in zones:
+        # Calcul dyal pourcentage: ((capacite_max - capacite_restante) / capacite_max) * 100
         if z.capacite_max > 0:
             places_occupees = z.capacite_max - z.capacite_restante
             pct_full = round((places_occupees / z.capacite_max) * 100, 1)
         else:
             pct_full = 0
             
+        # Check dyal Stock Critique: N-golo mital ila kan 9el mn 50 kg/Litre ra critical
         critical_stock = False
         stocks = Stocker.query.filter_by(id_zone=z.id_zone).all()
         for s in stocks:
-            if s.quantite_disponible < 50:  
+            if s.quantite_disponible < 50:  # Seuil d'alerte (Tqder t-bdlo)
                 critical_stock = True
                 break
                 
@@ -212,6 +244,7 @@ def get_dashboard_summary():
             "critical_stock": critical_stock
         })
         
+    # 4. Return l-JSON kima m-tloub f l-PRD
     return jsonify({
         "total_zones": total_zones,
         "total_reservations": total_reservations,
@@ -220,6 +253,7 @@ def get_dashboard_summary():
         "zones": zones_data
     }), 200
 
+# --- INVENTORY ADDITIONS ---
 @admin_bp.route('/resources', methods=['POST'])
 @admin_required
 def create_resource():
@@ -235,6 +269,7 @@ def create_resource():
 @admin_bp.route('/zones/<int:id_zone>/stocks', methods=['POST'])
 @admin_required
 def restock_zone(id_zone):
+    # Security check: if standard admin, must be their zone
     current_user_id = get_jwt_identity()
     user = User.query.get(current_user_id)
     if user.role == 'admin' and int(id_zone) != user.id_zone:
@@ -254,9 +289,11 @@ def restock_zone(id_zone):
     db.session.commit()
     return jsonify({"message": "Stock updated successfully", "new_quantity": stock.quantite_disponible}), 200
 
+# Partie 5.5: List response teams
 @admin_bp.route('/teams', methods=['GET'])
 @admin_required
 def list_teams():
+    # Kat-jbed mn table 'equipe'
     equipes = Equipe.query.all()
     teams_list = []
     for e in equipes:
@@ -267,6 +304,7 @@ def list_teams():
         })
     return jsonify({"teams": teams_list}), 200
 
+# --- TEAM MANAGEMENT ---
 @admin_bp.route('/teams', methods=['POST'])
 @admin_required
 def create_team():
@@ -301,14 +339,15 @@ def delete_team(id):
     db.session.commit()
     return jsonify({"message": "Team deleted"}), 200
 
+# --- USER MANAGEMENT & PROFILES ---
 @admin_bp.route('/users', methods=['POST'])
 @super_admin_required
 def create_admin_user():
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
-    role = data.get('role', 'admin') 
-    id_zone = data.get('id_zone') 
+    role = data.get('role', 'admin') # Par defaut 'admin'
+    id_zone = data.get('id_zone') # Optional but recommended for role='admin'
     
     if User.query.filter_by(email=email).first():
         return jsonify({"message": "User already exists"}), 400

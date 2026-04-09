@@ -4,6 +4,7 @@ from models import User, Sinistre, PointAffectation, ZoneRegroupement
 
 victim_bp = Blueprint('victim', __name__)
 
+# Unified Victim Dashboard
 @victim_bp.route('/dashboard', methods=['GET'])
 @jwt_required()
 def get_victim_dashboard():
@@ -11,6 +12,7 @@ def get_victim_dashboard():
     user = User.query.get(user_id)
     sinistre = Sinistre.query.filter_by(user_id=user_id).first()
     
+    # 1. Reservation
     res_data = None
     zone_data = None
     if sinistre and sinistre.id_point:
@@ -28,6 +30,7 @@ def get_victim_dashboard():
             "id_zone": zone.id_zone
         }
         
+    # 2. Statistics (nearby zones)
     all_zones = ZoneRegroupement.query.all()
     zones_list = []
     for z in all_zones:
