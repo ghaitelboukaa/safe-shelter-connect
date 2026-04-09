@@ -52,7 +52,10 @@ An emergency response and logistics coordination platform designed to link earth
 ```text
 📦 safe-shelter-connect
  ┣ 📂 backend
- ┃ ┣ 📜 app.py            # Main Flask application and API routes
+ ┃ ┣ 📂 routes            # Modular Flask application Blueprints
+ ┃ ┣ 📂 utils             # Decorators and helper utilities
+ ┃ ┣ 📜 app.py            # Main Flask application entry point
+ ┃ ┣ 📜 extensions.py     # Database and JWT initialization
  ┃ ┣ 📜 models.py         # SQLAlchemy database models
  ┃ ┣ 📜 .env.example      # Example environment variables
  ┃ ┗ 📂 venv              # Python virtual environment
@@ -146,15 +149,3 @@ JWT_SECRET_KEY=your_secure_jwt_secret
 
 ---
 
-## 📸 Screenshots
-*(TODO: Add screenshots showcasing the Split-panel authentication, Interactive Shelter Map, and Admin Logistics Dashboard)*
-
----
-
-## 🤝 Contributing
-Contributions are welcome! Please format your pull requests clearly and adhere to the project's React structure and Tailwind design tokens.
-
----
-
-## 📄 License
-This project is licensed under the MIT License.

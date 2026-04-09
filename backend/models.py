@@ -1,8 +1,6 @@
 from datetime import datetime
 
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from extensions import db
 
 # 1. ZoneRegroupement (Mafihach Foreign Keys)
 class ZoneRegroupement(db.Model):
