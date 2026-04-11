@@ -180,10 +180,9 @@ function ZoneGrid({ onBook }) {
 
                 <button
                   id={`request-zone-${zone.id_zone}`}
-                  onClick={() => !isFull && onBook(zone.id_zone)}
-                  disabled={isFull}
+                  onClick={() => onBook(zone.id_zone)}
                   className={`shrink-0 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${isFull
-                      ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+                      ? "bg-slate-100 text-slate-400 cursor-not-allowed hover:bg-slate-200"
                       : "bg-primary-800 text-white hover:bg-primary-900 active:scale-95"
                     }`}
                 >

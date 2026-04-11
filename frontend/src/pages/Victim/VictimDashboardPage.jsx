@@ -172,8 +172,12 @@ export default function VictimDashboardPage() {
                           <button
                             id={`book-zone-${z.id_zone}`}
                             onClick={() => bookMutation.mutate(z.id_zone)}
-                            disabled={z.capacite_restante <= 0 || bookMutation.isPending}
-                            className="p-3 bg-slate-50 group-hover:bg-primary-800 text-slate-400 group-hover:text-white rounded-2xl transition-all duration-300"
+                            disabled={bookMutation.isPending}
+                            className={`p-3 rounded-2xl transition-all duration-300 ${
+                              z.capacite_restante <= 0 
+                                ? "bg-slate-100 text-slate-300 cursor-not-allowed hover:bg-slate-200" 
+                                : "bg-slate-50 group-hover:bg-primary-800 text-slate-400 group-hover:text-white"
+                            }`}
                             title="Request Spot"
                           >
                             <Navigation className="h-5 w-5" />

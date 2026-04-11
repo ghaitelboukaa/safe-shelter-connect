@@ -30,7 +30,14 @@ def create_reservation():
             "status": 409
         }), 409
 
-    # 2. Check wax l-zone kayna
+    # 2. Check wax l-zone kayna o wach fiha blassa
+    zone = ZoneRegroupement.query.get(zone_id)
+    if not zone:
+        return jsonify({"error": "not_found", "message": "Zone not found", "status": 404}), 404
+        
+    if zone.capacite_restante <= 0:
+        return jsonify({"error": "zone_full", "message": "This zone is completely full. You cannot reserve a spot here.", "status": 400}), 400
+
     point = PointAffectation.query.filter_by(id_zone=zone_id, statut='Libre').first()
     if not point:
         return jsonify({"error": "not_found", "message": "No available place in this zone", "status": 404}), 404
