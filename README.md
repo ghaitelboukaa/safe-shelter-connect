@@ -1,4 +1,4 @@
-# ⛺ Safe-Shelter Connect | Plateforme de Logistique Post-Séisme | 🔗 [Lien vers GitHub](https://github.com/votre-compte/votre-repo)
+# ⛺ Safe-Shelter Connect | Plateforme de Logistique Post-Séisme | 🔗 [Lien vers GitHub](https://github.com/ghaitelboukaa/safe-shelter-connect)
 
 ## 📌 Description du Projet
 **Safe-Shelter Connect** est un système d'information complet conçu pour gérer les opérations d'urgence après un séisme. Le système permet de gérer les zones de regroupement, d'affecter des abris aux sinistrés, et d'assurer une traçabilité stricte (via des Triggers et Procédures Stockées SQL) des ressources vitales (eau, tentes, kits médicaux).
@@ -6,8 +6,12 @@
 ## 🎥 Démo du Projet (Lien Vidéo)
 > 🔗 **[Insérez ici le lien de votre vidéo YouTube ou Google Drive]**
 
-## 📄 Rapport
+## 📄 Rapports
 Le rapport détaillé de l'architecture et de l'implémentation est disponible dans ce repository sous le nom : `Rapport_Safe_Shelter_Connect.pdf`.
+BlueTeam  : `BlueTeam_PostFix_Report.pdf`.
+
+## 📄 Presentations
+l'architecture : `presentation_Architectes.pdf`.
 
 ## 👥 Membres de l'Équipe (Groupe 4)
 Conformément aux consignes, voici les membres des filières SDBDIA & SITCN ayant collaboré sur le projet **Safe-Shelter Connect** :
@@ -24,10 +28,7 @@ Conformément aux consignes, voici les membres des filières SDBDIA & SITCN ayan
 - **EDDRIA Aya**
 - **EL AOUTMANI Moncef**
 
-## 🛠️ Technologies Utilisées
-* **Backend :** Python (Flask), SQLAlchemy, JWT (Authentification)
-* **Base de Données :** MySQL (avec Triggers & Procédures Stockées)
-* **Frontend :** React.js, Tailwind CSS
+
 
 ## 🚀 Fonctionnalités Clés (Business Logic)
 1. **Gestion des Capacités (Automatisée) :** Procédure stockée `sp_refresh_capacity` qui recalcule en temps réel les places disponibles dans les abris selon les points d'affectation occupés.
@@ -52,6 +53,31 @@ Conformément aux consignes, voici les membres des filières SDBDIA & SITCN ayan
 * **Real-time Analytics:** Track critical stock levels and shelter capacities using Recharts and React Query polling.
 * **Zone Management:** Super Admins can create, edit, and delete zones, complete with GPS coordinates.
 * **User Management:** Super Admin interface to manage the administrative team.
+
+---
+
+## 🛠️ Technologies Utilisées
+
+**Frontend:**
+* React 18 / Vite
+* Tailwind CSS & Custom UI Tokens
+* React Router DOM (Routing)
+* TanStack React Query (State Management & Polling)
+* React Leaflet (Interactive mapping)
+* Recharts (Data visualization)
+* Radix UI / Shadcn (Accessible, headless UI components)
+* Lucide React (Iconography)
+
+**Backend:**
+* Python / Flask
+* Flask-SQLAlchemy (ORM)
+* Flask-JWT-Extended (Authentication)
+* Flask-CORS
+* PyMySQL (Database driver)
+* python-dotenv (Environment variables)
+
+**Database:**
+* MySQL
 
 ---
 
