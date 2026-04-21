@@ -74,12 +74,10 @@ class Equipe(db.Model):
     id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
 
 class Mission(db.Model):
-    __tablename__ = 'mission'
+    __tablename__ = 'mision'
     id_mission = db.Column(db.Integer, primary_key=True)
-    titre = db.Column(db.String(200), nullable=False)
-    description = db.Column(db.Text)
-    statut = db.Column(db.Enum('Pending', 'In Progress', 'Completed', 'Cancelled'), default='Pending')
-    id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
     id_equipe = db.Column(db.Integer, db.ForeignKey('equipe.id_equipe'))
-    date_creation = db.Column(db.DateTime, default=datetime.utcnow)
-    
+    id_zone = db.Column(db.Integer, db.ForeignKey('zoneregroupement.id_zone'))
+    description = db.Column(db.String(255))
+    date_debut = db.Column(db.DateTime, default=datetime.utcnow)
+    date_fin = db.Column(db.DateTime, default=None)

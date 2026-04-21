@@ -1,10 +1,43 @@
-# Safe-Shelter Connect
+# ⛺ Safe-Shelter Connect | Plateforme de Logistique Post-Séisme | 🔗 [Lien vers GitHub](https://github.com/votre-compte/votre-repo)
 
-An emergency response and logistics coordination platform designed to link earthquake survivors with safe zones and real-time resources. Safe-Shelter Connect provides a public-facing portal for victims to find and request shelter, alongside a powerful admin dashboard for managing logistics, inventory, and zone capacity in real-time.
+## 📌 Description du Projet
+**Safe-Shelter Connect** est un système d'information complet conçu pour gérer les opérations d'urgence après un séisme. Le système permet de gérer les zones de regroupement, d'affecter des abris aux sinistrés, et d'assurer une traçabilité stricte (via des Triggers et Procédures Stockées SQL) des ressources vitales (eau, tentes, kits médicaux).
+
+## 🎥 Démo du Projet (Lien Vidéo)
+> 🔗 **[Insérez ici le lien de votre vidéo YouTube ou Google Drive]**
+
+## 📄 Rapport
+Le rapport détaillé de l'architecture et de l'implémentation est disponible dans ce repository sous le nom : `Rapport_Safe_Shelter_Connect.pdf`.
+
+## 👥 Membres de l'Équipe (Groupe 4)
+Conformément aux consignes, voici les membres des filières SDBDIA & SITCN ayant collaboré sur le projet **Safe-Shelter Connect** :
+- **CHITACHNI Doha**
+- **EL BAGHDADI Wafae**
+- **EL BOUKAA Ghait**
+- **EL HAFIANE Ahmed**
+- **EL HART Hamza**
+- **EL KAZDIR Fatima**
+- **CHOKRANI R.**
+- **DAOUI Abdessamad**
+- **DARBALI A. YASSER**
+- **DREUICHE Mohamed**
+- **EDDRIA Aya**
+- **EL AOUTMANI Moncef**
+
+## 🛠️ Technologies Utilisées
+* **Backend :** Python (Flask), SQLAlchemy, JWT (Authentification)
+* **Base de Données :** MySQL (avec Triggers & Procédures Stockées)
+* **Frontend :** React.js, Tailwind CSS
+
+## 🚀 Fonctionnalités Clés (Business Logic)
+1. **Gestion des Capacités (Automatisée) :** Procédure stockée `sp_refresh_capacity` qui recalcule en temps réel les places disponibles dans les abris selon les points d'affectation occupés.
+2. **Auto-Deduct Stock :** Trigger `fn_deduct_stock` qui déduit automatiquement les stocks de survie lors d'une distribution.
+3. **Sécurité :** Authentification par Token JWT avec gestion des rôles (Super Admin, Admin Zone, Sinistré).
+4. **Gestion des Interventions :** Affectation d'équipes de secours aux zones critiques avec suivi des statuts.
 
 ---
 
-## 🌟 Features
+## 🌟 Technical Features (Extended)
 
 ### For Victims & Public
 * **Zone Discovery:** Public map and list views of active shelter zones and their current capacities.
@@ -19,31 +52,6 @@ An emergency response and logistics coordination platform designed to link earth
 * **Real-time Analytics:** Track critical stock levels and shelter capacities using Recharts and React Query polling.
 * **Zone Management:** Super Admins can create, edit, and delete zones, complete with GPS coordinates.
 * **User Management:** Super Admin interface to manage the administrative team.
-
----
-
-## 🛠️ Technologies Used
-
-**Frontend:**
-* React 18 / Vite
-* Tailwind CSS & Custom UI Tokens
-* React Router DOM (Routing)
-* TanStack React Query (State Management & Polling)
-* React Leaflet (Interactive mapping)
-* Recharts (Data visualization)
-* Radix UI / Shadcn (Accessible, headless UI components)
-* Lucide React (Iconography)
-
-**Backend:**
-* Python / Flask
-* Flask-SQLAlchemy (ORM)
-* Flask-JWT-Extended (Authentication)
-* Flask-CORS
-* PyMySQL (Database driver)
-* python-dotenv (Environment variables)
-
-**Database:**
-* MySQL
 
 ---
 
@@ -146,6 +154,3 @@ DB_HOST=localhost
 DB_NAME=your_database_name
 JWT_SECRET_KEY=your_secure_jwt_secret
 ```
-
----
-
