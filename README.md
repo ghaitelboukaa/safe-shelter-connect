@@ -1,10 +1,9 @@
-# ⛺ Safe-Shelter Connect | Plateforme de Logistique Post-Séisme | 🔗 [Lien vers GitHub](https://github.com/ghaitelboukaa/safe-shelter-connect)
-
+# ⛺ Safe-Shelter Connect | Plateforme de Logistique Post-Séisme | 
 ## 📌 Description du Projet
 **Safe-Shelter Connect** est un système d'information complet conçu pour gérer les opérations d'urgence après un séisme. Le système permet de gérer les zones de regroupement, d'affecter des abris aux sinistrés, et d'assurer une traçabilité stricte (via des Triggers et Procédures Stockées SQL) des ressources vitales (eau, tentes, kits médicaux).
 
 ## 🎥 Démo du Projet (Lien Vidéo)
-> 🔗 **[Insérez ici le lien de votre vidéo YouTube ou Google Drive]**
+> 🔗 **[https://drive.google.com/file/d/1X_Tk-gu4q68HUKOnzaEohg2Zlt0x34Vs/view?usp=sharing]**
 
 ## 📄 Rapports
 Le rapport détaillé de l'architecture et de l'implémentation est disponible dans ce repository sous le nom : `Rapport_Safe_Shelter_Connect.pdf`.
