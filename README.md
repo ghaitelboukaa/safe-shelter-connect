@@ -10,6 +10,7 @@ Le rapport détaillé de l'architecture et de l'implémentation est disponible d
 BlueTeam  : `BlueTeam_PostFix_Report.pdf`.
 RedTeam  : `Rapport_Security.pdf`.
 TestTeam  : `rapport équipe de test.pdf`.
+Augmented  : `rapport.pdf`.
 
 ## 📄 Presentations
 l'architecture : `presentation_Architectes.pdf`.
