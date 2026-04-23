@@ -87,27 +87,29 @@ Conformément aux consignes, voici les membres des filières SDBDIA & SITCN ayan
 
 ```text
 📦 safe-shelter-connect
- ┣ 📂 backend
- ┃ ┣ 📂 routes            # Modular Flask application Blueprints
- ┃ ┣ 📂 utils             # Decorators and helper utilities
- ┃ ┣ 📜 app.py            # Main Flask application entry point
- ┃ ┣ 📜 extensions.py     # Database and JWT initialization
- ┃ ┣ 📜 models.py         # SQLAlchemy database models
- ┃ ┣ 📜 .env.example      # Example environment variables
- ┃ ┗ 📂 venv              # Python virtual environment
- ┣ 📂 frontend
- ┃ ┣ 📂 src
- ┃ ┃ ┣ 📂 api           # Axios instances and API services (auth, zone, admin)
- ┃ ┃ ┣ 📂 components    # Shared UI components (Navbar, Badge, SearchInput)
- ┃ ┃ ┣ 📂 context       # React Context (AuthContext)
- ┃ ┃ ┣ 📂 lib           # Utilities (Tailwind cn merge)
- ┃ ┃ ┗ 📂 pages         # Page components (Admin, Auth, Public, Victim)
- ┃ ┣ 📜 index.html        # Main HTML entry point
- ┃ ┣ 📜 package.json      # Frontend dependencies and scripts
- ┃ ┣ 📜 tailwind.config.js# Tailwind CSS configuration
- ┃ ┗ 📜 vite.config.js    # Vite bundler configuration
- ┣ 📜 soussmassaresilience.sql # Main database SQL schema dump
- ┗ 📜 README.md
+ ┣ 📂 sans_ia
+ ┃ ┣ 📂 backend
+ ┃ ┃ ┣ 📂 routes            # Modular Flask application Blueprints
+ ┃ ┃ ┣ 📂 utils             # Decorators and helper utilities
+ ┃ ┃ ┣ 📜 app.py            # Main Flask application entry point
+ ┃ ┃ ┣ 📜 extensions.py     # Database and JWT initialization
+ ┃ ┃ ┣ 📜 models.py         # SQLAlchemy database models
+ ┃ ┃ ┣ 📜 .env.example      # Example environment variables
+ ┃ ┃ ┗ 📂 venv              # Python virtual environment
+ ┃ ┣ 📂 frontend
+ ┃ ┃ ┣ 📂 src
+ ┃ ┃ ┃ ┣ 📂 api           # Axios instances and API services (auth, zone, admin)
+ ┃ ┃ ┃ ┣ 📂 components    # Shared UI components (Navbar, Badge, SearchInput)
+ ┃ ┃ ┃ ┣ 📂 context       # React Context (AuthContext)
+ ┃ ┃ ┃ ┣ 📂 lib           # Utilities (Tailwind cn merge)
+ ┃ ┃ ┃ ┗ 📂 pages         # Page components (Admin, Auth, Public, Victim)
+ ┃ ┃ ┣ 📜 index.html        # Main HTML entry point
+ ┃ ┃ ┣ 📜 package.json      # Frontend dependencies and scripts
+ ┃ ┃ ┣ 📜 tailwind.config.js# Tailwind CSS configuration
+ ┃ ┃ ┗ 📜 vite.config.js    # Vite bundler configuration
+ ┃ ┗ 📜 soussmassaresilience.sql # Main database SQL schema dump
+ ┣ 📜 README.md
+ ┗ 📜 *.pdf (Rapports de l'équipe)
 ```
 
 ---
@@ -128,7 +130,7 @@ mysql -u your_username -p safe_shelter_db < soussmassaresilience.sql
 
 ### 2. Backend Setup
 ```bash
-cd backend
+cd sans_ia/backend
 python -m venv venv
 
 # Activate virtual environment
@@ -151,7 +153,7 @@ python app.py
 
 ### 3. Frontend Setup
 ```bash
-cd frontend
+cd sans_ia/frontend
 npm install
 
 # Run the development server
